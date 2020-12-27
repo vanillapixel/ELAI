@@ -1,0 +1,48 @@
+* {
+  position: relative;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  height: 200vh;
+}
+
+.container {
+  width: 50vw;
+  height: 70vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin: auto;
+}
+
+h1 {
+  box-shadow: 0 0 10px red;
+  cursor: text;
+}
+
+.ELUI-sidebar-wrapper {
+  width: 50px;
+  height: 100vh;
+  border-right: 2px solid black;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: black;
+  display: none;
+}
+
+.ELUI-sidebar-wrapper .sidebar-position-wrapper {
+  display: flex;
+  width: 100%;
+}
+
+.ELUI-sidebar-wrapper .sidebar-position-wrapper .sidebar-position-icon {
+  height: 20px;
+  width: 20px;
+  border: 5px dashed #353535;
+  border-left: 5px solid #fa7030;
+  margin: 20px auto;
+}
