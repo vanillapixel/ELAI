@@ -53,6 +53,7 @@ ELAI #translation-modifier {
   left: 50%;
   transform: translate(-50%, -50%);
   cursor: move;
+  z-index: 1;
 }
 
 ELAI #rotation-modifier {
@@ -71,7 +72,7 @@ ELAI #resize-text-modifier {
   outline: none;
   overflow: hidden;
   white-space: pre-wrap;
-  box-sizing: content-box;
+  box-sizing: border-box;
 }
 
 ELAI .icon {

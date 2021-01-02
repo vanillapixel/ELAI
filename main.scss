@@ -58,6 +58,7 @@ ELAI {
     left: 50%;
     transform: translate(-50%, -50%);
     cursor: move;
+    z-index: 1;
   }
   #rotation-modifier {
     top: -75%;
@@ -74,7 +75,7 @@ ELAI {
     outline: none;
     overflow: hidden;
     white-space: pre-wrap;
-    box-sizing: content-box;
+    box-sizing: border-box;
   }
   .icon {
     height: 25px;

@@ -73,15 +73,15 @@ function selectElement(e) {
   setTimeout(() => {
     ELAI.style.display = "block";
   }, 200);
-  // ELAI.style.height = selectedEl.height + "px";
-  // ELAI.style.width = selectedEl.width + "px";
-  // ELAI.style.top = selectedEl.top + "px";
-  // ELAI.style.left = selectedEl.left + "px";
   const textModifier = document.querySelector("#resize-text-modifier");
   const translationModifier = document.querySelector("#translation-modifier");
   textModifier.value = selectedEl.el.childNodes[0].textContent;
   textModifier.style.font = getComputedStyle(selectedEl.el).font;
-  textModifier.style.width = `calc(100% - (${selectedEl.specs.paddingLeft} + ${selectedEl.specs.paddingLeft}));`;
+  textModifier.style.paddingLeft = selectedEl.specs.paddingLeft;
+  textModifier.style.paddingRight = selectedEl.specs.paddingRight;
+  textModifier.style.paddingTop = selectedEl.specs.paddingTop;
+  textModifier.style.paddingBottom = selectedEl.specs.paddingBottom;
+
   textModifier.addEventListener("input", changeText);
   enablingResizing(selectedEl);
   resizeObserver.observe(textModifier);
@@ -144,16 +144,19 @@ function enableRepositioning(e) {
 
 function enablingResizing() {
   const resizer = document.querySelector("#resize-text-modifier");
-  let width =
-    resizer.scrollWidth -
-    (Number(selectedEl.specs.paddingLeft.slice(0, -2)) +
-      Number(selectedEl.specs.paddingRight.slice(0, -2)));
-  let height =
-    resizer.scrollHeight -
-    (Number(selectedEl.specs.paddingTop.slice(0, -2)) +
-      Number(selectedEl.specs.paddingBottom.slice(0, -2)));
-  selectedEl.el.style.height = height + "px";
+  const paddingLR =
+    Number(selectedEl.specs.paddingLeft.slice(0, -2)) +
+    Number(selectedEl.specs.paddingRight.slice(0, -2));
+  const paddingTB =
+    Number(selectedEl.specs.paddingTop.slice(0, -2)) +
+    Number(selectedEl.specs.paddingBottom.slice(0, -2));
+  let width = resizer.scrollWidth - paddingLR;
+
+  let height = resizer.scrollHeight - paddingTB;
+
+  console.log(resizer.scrollWidth, width, paddingLR);
   selectedEl.el.style.width = width + "px";
+  selectedEl.el.style.height = height + "px";
 }
 
 function showNotificationBar(type, message) {
@@ -236,60 +239,6 @@ function toggleHighlightElement(
     restoreItemCssProperties(el, highlightedElement.props);
   }
 }
-
-// function enableRepositioning(
-//   e,
-//   propertiesToChange = { boxShadow: "0px 0px 0px 3px red", cursor: "pointer" }
-// ) {
-//   if (e.button === 0) {
-//     e.preventDefault();
-//     e.stopPropagation();
-//     if (!globalStyle) {
-//       setGlobalStyle();
-//     }
-//     highlightedElement.el = e.target;
-//     const { el } = highlightedElement;
-//     const properties = Object.keys(propertiesToChange);
-//     backupItemCssProperties(
-//       el,
-//       properties,
-//       (backupDestination = highlightedElement)
-//     );
-//     globalStyle = true;
-//     SELECTED_EL.el = e.target;
-//     originalElShadow = SELECTED_EL.el.style.boxShadow;
-//     originalElTransition = SELECTED_EL.el.style.transition;
-//     SELECTED_EL.x = +SELECTED_EL.el.style.left.slice(0, -2);
-//     SELECTED_EL.y = +SELECTED_EL.el.style.top.slice(0, -2);
-//     SELECTED_EL.el.style.cssText = `box-shadow: 0px 0px 0px 3px red !important;  position: relative !important;  transition: all 0s 0s !important;  cursor: pointer !important;  top: ${SELECTED_EL.el.style.top};;  left: ${SELECTED_EL.el.style.left};`;
-//     mouseStartX = e.clientX;
-//     mouseStartY = e.clientY;
-//     document.addEventListener("mousemove", moveEl);
-//     document.addEventListener("mouseup", endMove);
-//   }
-// }
-
-// function moveEl(e) {
-//   e.preventDefault();
-//   e.stopPropagation();
-//   left = SELECTED_EL.x + e.clientX - mouseStartX;
-//   topp = SELECTED_EL.y + e.clientY - mouseStartY;
-//   positionString = `left: ${left}px !important;
-//   top:${topp}px !important`;
-//   SELECTED_EL.el.style.cssText += positionString;
-// }
-
-// function endMove(e) {
-//   e.preventDefault();
-//   e.stopPropagation();
-//   mouseStartX = e.clientX;
-//   mouseStartY = e.clientY;
-//   SELECTED_EL.el.style.cursor = "pointer";
-//   SELECTED_EL.el.style.boxShadow = originalElShadow;
-//   SELECTED_EL.el.style.transition = originalElTransition;
-//   document.removeEventListener("mousemove", moveEl);
-//   document.removeEventListener("mouseup", endMove);
-// }
 
 function setGlobalStyle() {
   const css = "* {overflow: visible !important; cursor: pointer !important};";
