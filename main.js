@@ -150,11 +150,10 @@ function enablingResizing() {
   const paddingTB =
     Number(selectedEl.specs.paddingTop.slice(0, -2)) +
     Number(selectedEl.specs.paddingBottom.slice(0, -2));
-  let width = resizer.scrollWidth - paddingLR;
+  let width = resizer.style.width.slice(0, -2) - paddingLR;
 
-  let height = resizer.scrollHeight - paddingTB;
+  let height = resizer.style.height.slice(0, -2) - paddingTB;
 
-  console.log(resizer.scrollWidth, width, paddingLR);
   selectedEl.el.style.width = width + "px";
   selectedEl.el.style.height = height + "px";
 }
