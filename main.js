@@ -25,46 +25,89 @@ ELAI.innerHTML = `<div class="icon" id="text-modifier">M
                       id="resize-text-modifier">
                     </textarea>`;
 
-const ELAI_SIDEBAR = document.createElement('ELAI-sidebar')
-ELAI_SIDEBAR.innerHTML = `    <div id="sidebar-wrapper">
-<div class="sidebar-button" id="new-el-selector" alt="Select new element">■</div>
-<div class="sidebar-button">+</div>
-<div class="sidebar-button"></div>
-</div>`
+// const ELAI_SIDEBAR = document.createElement('ELAI-sidebar')
+// ELAI_SIDEBAR.innerHTML = `    <div id="sidebar-wrapper">
+// <div class="sidebar-button" id="new-el-selector" alt="Select new element">■</div>
+// <div class="sidebar-button">+</div>
+// <div class="sidebar-button"></div>
+// </div>`
 
-class Sidebar {
-  constructor() {
-    this.buttons = [
-      newSidebarButton()
-    ]
-  }
-    <div id = "sidebar-container" >
-      <SidebarButton
-        id='new-el-selector'
-        action= enableElementSelection
-        trigger='click'
-      />
-    </div>
+function createNewButton(id, trigger, callback) {
+  const newButton = document.createElement('div')
+  newButton.classList.add('sidebar-button')
+  newButton.id = id
+  newButton.addEventListener(trigger, callback)
+  return newButton
 }
 
-class SidebarButton {
-  constructor(id, action, trigger) {
-    this.el = document.createElement('div')
-    this.id = id
-    this.action = action
-    this.activate = this.toggleListener()
-    this.trigger = trigger
-    this.status = 'inactive'
+const ELAI_SIDEBAR = document.createElement('div')
+ELAI_SIDEBAR.classList.add('elai-sidebar')
+
+let newObjects = [];
+let newObjectCounter = 0;
+let newObjCreation = 'disabled';
+const createNewObjectButton = createNewButton('new-el-selector', 'click', toggleNewObjCreation);
+ELAI_SIDEBAR.appendChild(createNewObjectButton)
+
+function createObject(e) {
+  document.addEventListener("mousemove", updateCoords);
+  let newObject = document.createElement("div");
+  body.appendChild(newObject);
+  newObject.classList.add("newObject");
+  newObject.id = `newObject-${newObjectCounter}`;
+
+  newObjects.push({
+    name: newObject.id,
+    initialPosY: e.clientY,
+    initialPosX: e.clientX,
+    left: e.clientX,
+    top: e.clientY,
+    width: 0,
+    height: 0,
+  });
+  newObject.style.left = e.clientX + "px";
+  newObject.style.top = e.clientY + "px";
+}
+
+function updateCoords(e) {
+  let newObject = document.querySelectorAll(".newObject")[newObjectCounter];
+  let { left, top, width, height, initialPosX, initialPosY } = objectsCoords[
+    newObjectCounter
+  ];
+  width = Math.abs(e.clientX - left);
+  if (initialPosX - e.clientX >= 0) {
+    left = initialPosX - e.clientX;
+    newObject.style.transform = `translateX(-${left}px)`;
   }
-  toggleListener() {
-    if (this.status === 'inactive') {
-      this.addEventListener(this.trigger, this.action)
-    }
-    else {
-      this.removeEventListener(this.trigger, this.action)
-    }
-    this.status = !this.status
+  height = Math.abs(e.clientY - top);
+  if (initialPosY - e.clientY >= 0) {
+    top = top - (initialPosY - e.clientY);
+    newObject.style.top = top + "px";
   }
+  newObject.style.height = height + "px";
+  newObject.style.width = width + "px";
+}
+
+function stopChangingCoords() {
+  newObjectCounter++;
+  document.removeEventListener("mousemove", updateCoords);
+}
+
+
+function toggleNewObjCreation() {
+  newObjCreation === 'disabled' ? enableNewObjCreation : disableNewObjectCreation
+}
+
+function enableNewObjCreation() {
+  newObjCreation = 'enabled'
+  body.addEventListener("mousedown", createObject);
+  body.addEventListener("mouseup", stopChangingCoords);
+  body.addEventListener("mouseout", stopChangingCoords);
+}
+function disableNewObjectCreation() {
+  newObjCreation = 'disabled'
+  body.removeEventListener("mousedown", createObject);
+  body.removeEventListener("mouseup", stopChangingCoords);
 }
 
 const cursor = document.createElement("span");
@@ -88,9 +131,11 @@ function toggleScriptActivation(e) {
       // setGlobalStyle();
       showNotificationBar("success", "ELAI Activated");
       document.addEventListener("click", enableElementSelection);
+      body.appendChild(ELAI_SIDEBAR)
+
     } else {
       showNotificationBar("error", "ELAI Dectivated");
-      deactivateScript(e);
+      disableElementSelection(e);
     }
   }
 }
@@ -140,7 +185,6 @@ function enableElementSelection(e) {
 
 function injectELAI() {
   selectedEl.el.appendChild(ELAI);
-  body.appendChild(ELAI_SIDEBAR);
 }
 
 // function changeCSSProperties(array_of_elements, cssPropertiesObject) {
@@ -152,8 +196,6 @@ function injectELAI() {
 // }
 
 function changeText(e) {
-  console.log('pato')
-  //TODO: change textarea width in auto
   selectedEl.el.childNodes[0].textContent = e.target.value;
 }
 
@@ -303,7 +345,7 @@ function setGlobalStyle() {
   style.textContent = css;
 }
 
-function deactivateScript(e) {
+function disableElementSelection(e) {
   e.preventDefault();
   // const ELAICssStyle = document.querySelector("#ELAIStyle");
   // ELAICssStyle.innerHTML = "";
@@ -313,7 +355,7 @@ function deactivateScript(e) {
   selectedEl.el.removeChild(ELAI);
   document.removeEventListener("click", enableElementSelection);
   selectedEl.el.removeEventListener("mousedown", enableRepositioning);
-  document.removeEventListener("contextmenu", deactivateScript);
+  document.removeEventListener("contextmenu", disableElementSelection);
   document.removeEventListener("mouseenter", toggleHighlightElement);
   document.removeEventListener("mouseleave", toggleHighlightElement);
 }
