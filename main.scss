@@ -7,6 +7,7 @@
 body {
   height: 200vh;
 }
+
 .container {
   width: 50vw;
   height: 70vh;
@@ -16,29 +17,61 @@ body {
   align-items: center;
   margin: auto;
 }
+
 h1 {
   box-shadow: 0 0 10px red;
   cursor: text;
   padding: 15px;
 }
+
+//TODO: move the sidebar inside the ELAI element
+
+#sidebar-wrapper {
+  position: fixed;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+
+  .sidebar-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 50px;
+    width: 50px;
+    background: rgb(31, 30, 30);
+    border-bottom: 5px solid white;
+    color: white;
+  }
+}
+
+
+
 ELAI {
   top: 0;
   left: 0;
   position: absolute;
   width: 100%;
   height: 100%;
+
   * {
     position: absolute;
   }
+
+
+
   #text-modifier {
     top: -75%;
     left: -20%;
+
     .icon {
       top: 0;
       left: 0;
       z-index: -1;
       opacity: 0;
     }
+
     //TODO: ACTIVATED ICONS
 
     // TODO: icon 1
@@ -53,6 +86,7 @@ ELAI {
     // top: -80%;
     // left: -120%;
   }
+
   #translation-modifier {
     top: 50%;
     left: 50%;
@@ -60,10 +94,12 @@ ELAI {
     cursor: move;
     z-index: 1;
   }
+
   #rotation-modifier {
     top: -75%;
     right: -20%;
   }
+
   #resize-text-modifier {
     top: 0;
     left: 0;
@@ -77,6 +113,7 @@ ELAI {
     white-space: pre-wrap;
     box-sizing: border-box;
   }
+
   .icon {
     height: 25px;
     width: 25px;

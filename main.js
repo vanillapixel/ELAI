@@ -25,6 +25,48 @@ ELAI.innerHTML = `<div class="icon" id="text-modifier">M
                       id="resize-text-modifier">
                     </textarea>`;
 
+const ELAI_SIDEBAR = document.createElement('ELAI-sidebar')
+ELAI_SIDEBAR.innerHTML = `    <div id="sidebar-wrapper">
+<div class="sidebar-button" id="new-el-selector" alt="Select new element">■</div>
+<div class="sidebar-button">+</div>
+<div class="sidebar-button"></div>
+</div>`
+
+class Sidebar {
+  constructor() {
+    this.buttons = [
+      newSidebarButton()
+    ]
+  }
+    <div id = "sidebar-container" >
+      <SidebarButton
+        id='new-el-selector'
+        action= enableElementSelection
+        trigger='click'
+      />
+    </div>
+}
+
+class SidebarButton {
+  constructor(id, action, trigger) {
+    this.el = document.createElement('div')
+    this.id = id
+    this.action = action
+    this.activate = this.toggleListener()
+    this.trigger = trigger
+    this.status = 'inactive'
+  }
+  toggleListener() {
+    if (this.status === 'inactive') {
+      this.addEventListener(this.trigger, this.action)
+    }
+    else {
+      this.removeEventListener(this.trigger, this.action)
+    }
+    this.status = !this.status
+  }
+}
+
 const cursor = document.createElement("span");
 
 // key combination to activate the script;
@@ -45,7 +87,7 @@ function toggleScriptActivation(e) {
     if (scriptActive) {
       // setGlobalStyle();
       showNotificationBar("success", "ELAI Activated");
-      document.addEventListener("click", selectElement);
+      document.addEventListener("click", enableElementSelection);
     } else {
       showNotificationBar("error", "ELAI Dectivated");
       deactivateScript(e);
@@ -64,8 +106,8 @@ class Element {
   }
 }
 
-function selectElement(e) {
-  document.removeEventListener("click", selectElement);
+function enableElementSelection(e) {
+  document.removeEventListener("click", enableElementSelection);
   selectedEl = new Element(e.target);
   selectedEl.el.style.minWidth = "30px";
   selectedEl.el.style.whiteSpace = "pre-wrap";
@@ -73,7 +115,15 @@ function selectElement(e) {
   setTimeout(() => {
     ELAI.style.display = "block";
   }, 200);
+
+  const newElSelector = document.querySelector('#new-el-selector')
+  newElSelector.addEventListener('click', enableElementSelection)
+
+
+  const newElCreator = document.querySelector('#new-el-creator')
+
   const textModifier = document.querySelector("#resize-text-modifier");
+
   const translationModifier = document.querySelector("#translation-modifier");
   textModifier.value = selectedEl.el.childNodes[0].textContent;
   textModifier.style.font = getComputedStyle(selectedEl.el).font;
@@ -90,6 +140,7 @@ function selectElement(e) {
 
 function injectELAI() {
   selectedEl.el.appendChild(ELAI);
+  body.appendChild(ELAI_SIDEBAR);
 }
 
 // function changeCSSProperties(array_of_elements, cssPropertiesObject) {
@@ -101,6 +152,7 @@ function injectELAI() {
 // }
 
 function changeText(e) {
+  console.log('pato')
   //TODO: change textarea width in auto
   selectedEl.el.childNodes[0].textContent = e.target.value;
 }
@@ -258,7 +310,8 @@ function deactivateScript(e) {
   const resizer = document.querySelector("#resize-text-modifier");
   resizeObserver.unobserve(resizer);
   selectedEl.el.removeChild(ELAI);
-  document.removeEventListener("click", selectElement);
+  selectedEl.el.removeChild(ELAI);
+  document.removeEventListener("click", enableElementSelection);
   selectedEl.el.removeEventListener("mousedown", enableRepositioning);
   document.removeEventListener("contextmenu", deactivateScript);
   document.removeEventListener("mouseenter", toggleHighlightElement);
