@@ -11,6 +11,12 @@ const body = document.querySelector("body");
 
 const resizeObserver = new ResizeObserver(enablingResizing);
 
+// SIDEBAR buttons
+
+let newElements = [];
+let newElementCounter = 0;
+let newElementCreation = "disabled";
+
 //TODO: injected ELAI CSS style
 // const ELAICssStyle
 
@@ -33,31 +39,32 @@ ELAI.innerHTML = `<div class="icon" id="text-modifier">M
 // </div>`
 
 function createNewButton(id, trigger, callback) {
-  const newButton = document.createElement('div')
-  newButton.classList.add('sidebar-button')
-  newButton.id = id
-  newButton.addEventListener(trigger, callback)
-  return newButton
+  const newButton = document.createElement("div");
+  newButton.classList.add("sidebar-button");
+  newButton.id = id;
+  newButton.addEventListener(trigger, callback);
+  return newButton;
 }
+const ELAI_SIDEBAR = document.createElement("div");
+ELAI_SIDEBAR.classList.add("elai-sidebar");
 
-const ELAI_SIDEBAR = document.createElement('div')
-ELAI_SIDEBAR.classList.add('elai-sidebar')
+const createNewElementButton = createNewButton(
+  "new-el-selector",
+  "click",
+  toggleNewElementCreation
+);
+ELAI_SIDEBAR.appendChild(createNewElementButton);
 
-let newObjects = [];
-let newObjectCounter = 0;
-let newObjCreation = 'disabled';
-const createNewObjectButton = createNewButton('new-el-selector', 'click', toggleNewObjCreation);
-ELAI_SIDEBAR.appendChild(createNewObjectButton)
+function createElement(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  let newElement = document.createElement("div");
+  body.appendChild(newElement);
+  newElement.classList.add("newElement");
+  newElement.id = `newElement-${newElementCounter}`;
 
-function createObject(e) {
-  document.addEventListener("mousemove", updateCoords);
-  let newObject = document.createElement("div");
-  body.appendChild(newObject);
-  newObject.classList.add("newObject");
-  newObject.id = `newObject-${newObjectCounter}`;
-
-  newObjects.push({
-    name: newObject.id,
+  newElements.push({
+    name: newElement.id,
     initialPosY: e.clientY,
     initialPosX: e.clientX,
     left: e.clientX,
@@ -65,49 +72,56 @@ function createObject(e) {
     width: 0,
     height: 0,
   });
-  newObject.style.left = e.clientX + "px";
-  newObject.style.top = e.clientY + "px";
+  newElement.style.left = e.clientX + "px";
+  newElement.style.top = e.clientY + "px";
+  body.addEventListener("mousemove", updateCoords);
 }
 
 function updateCoords(e) {
-  let newObject = document.querySelectorAll(".newObject")[newObjectCounter];
-  let { left, top, width, height, initialPosX, initialPosY } = objectsCoords[
-    newObjectCounter
+  console.log("sjaidisa");
+  let newElement = document.querySelectorAll(".newElement")[newElementCounter];
+  let { left, top, width, height, initialPosX, initialPosY } = newElements[
+    newElementCounter
   ];
   width = Math.abs(e.clientX - left);
   if (initialPosX - e.clientX >= 0) {
     left = initialPosX - e.clientX;
-    newObject.style.transform = `translateX(-${left}px)`;
+    newElement.style.transform = `translateX(-${left}px)`;
   }
   height = Math.abs(e.clientY - top);
   if (initialPosY - e.clientY >= 0) {
     top = top - (initialPosY - e.clientY);
-    newObject.style.top = top + "px";
+    newElement.style.top = top + "px";
   }
-  newObject.style.height = height + "px";
-  newObject.style.width = width + "px";
+  newElement.style.height = height + "px";
+  newElement.style.width = width + "px";
 }
 
 function stopChangingCoords() {
-  newObjectCounter++;
-  document.removeEventListener("mousemove", updateCoords);
+  console.log("pèito");
+  newElementCounter++;
+  body.removeEventListener("mousemove", updateCoords);
 }
 
-
-function toggleNewObjCreation() {
-  newObjCreation === 'disabled' ? enableNewObjCreation : disableNewObjectCreation
+function toggleNewElementCreation() {
+  newElementCreation === "disabled"
+    ? enableNewElementCreation()
+    : disableNewElementCreation();
 }
 
-function enableNewObjCreation() {
-  newObjCreation = 'enabled'
-  body.addEventListener("mousedown", createObject);
+function enableNewElementCreation() {
+  console.log("enable creation");
+  newElementCreation = "enabled";
+  body.addEventListener("mousedown", createElement);
   body.addEventListener("mouseup", stopChangingCoords);
   body.addEventListener("mouseout", stopChangingCoords);
 }
-function disableNewObjectCreation() {
-  newObjCreation = 'disabled'
-  body.removeEventListener("mousedown", createObject);
+function disableNewElementCreation() {
+  newElementCreation = "disabled";
+  console.log("disenable creation");
+  body.removeEventListener("mousedown", createElement);
   body.removeEventListener("mouseup", stopChangingCoords);
+  body.removeEventListener("mouseout", stopChangingCoords);
 }
 
 const cursor = document.createElement("span");
@@ -130,9 +144,8 @@ function toggleScriptActivation(e) {
     if (scriptActive) {
       // setGlobalStyle();
       showNotificationBar("success", "ELAI Activated");
+      body.appendChild(ELAI_SIDEBAR);
       document.addEventListener("click", enableElementSelection);
-      body.appendChild(ELAI_SIDEBAR)
-
     } else {
       showNotificationBar("error", "ELAI Dectivated");
       disableElementSelection(e);
@@ -154,6 +167,7 @@ class Element {
 function enableElementSelection(e) {
   document.removeEventListener("click", enableElementSelection);
   selectedEl = new Element(e.target);
+  console.log(selectedEl.el);
   selectedEl.el.style.minWidth = "30px";
   selectedEl.el.style.whiteSpace = "pre-wrap";
   injectELAI();
@@ -161,11 +175,10 @@ function enableElementSelection(e) {
     ELAI.style.display = "block";
   }, 200);
 
-  const newElSelector = document.querySelector('#new-el-selector')
-  newElSelector.addEventListener('click', enableElementSelection)
+  const newElSelector = document.querySelector("#new-el-selector");
+  newElSelector.addEventListener("click", enableElementSelection);
 
-
-  const newElCreator = document.querySelector('#new-el-creator')
+  const newElCreator = document.querySelector("#new-el-creator");
 
   const textModifier = document.querySelector("#resize-text-modifier");
 
