@@ -100,7 +100,7 @@ function updateSize(e) {
   newObject.style.width = width + "px";
 }
 
-function stopChangingCoords(e) {
+function stopUpdateSize(e) {
   e.preventDefault();
   e.stopPropagation();
   newObjectCounter++;
@@ -113,16 +113,17 @@ function toggleNewObjCreation() {
 
 function enableNewObjCreation() {
   newObjCreation = 'enabled';
+  //TODO: newly created element is SELECTED_EL.el
   body.addEventListener("mousedown", createObject);
-  body.addEventListener("mouseup", stopChangingCoords);
-  body.addEventListener("mouseleave", stopChangingCoords);
+  body.addEventListener("mouseup", stopUpdateSize);
+  body.addEventListener("mouseleave", stopUpdateSize);
   showNotificationBar('success', 'Create new object mode enabled')
 }
 function disableNewObjectCreation() {
   newObjCreation = 'disabled'
   body.removeEventListener("mousedown", createObject);
-  body.removeEventListener("mouseup", stopChangingCoords);
-  body.removeEventListener("mouseleave", stopChangingCoords);
+  body.removeEventListener("mouseup", stopUpdateSize);
+  body.removeEventListener("mouseleave", stopUpdateSize);
   showNotificationBar('error', 'Create new object mode disabled')
 }
 
