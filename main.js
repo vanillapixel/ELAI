@@ -11,6 +11,10 @@ const body = document.querySelector("body");
 
 const resizeObserver = new ResizeObserver(enablingResizing);
 
+let newObjects = [];
+let newObjectCounter = 0;
+let newObjCreation = 'disabled';
+
 //TODO: injected ELAI CSS style
 // const ELAICssStyle
 
@@ -32,30 +36,29 @@ ELAI.innerHTML = `<div class="icon" id="text-modifier">M
 // <div class="sidebar-button"></div>
 // </div>`
 
-function createNewButton(id, trigger, callback) {
-  const newButton = document.createElement('div')
-  newButton.classList.add('sidebar-button')
-  newButton.id = id
-  newButton.addEventListener(trigger, callback)
-  return newButton
+function createNewButton(id, content, trigger, callback) {
+  const button = document.createElement('div')
+  button.classList.add('sidebar-button')
+  button.textContent = content;
+  button.id = id
+  button.addEventListener(trigger, callback)
+  return button
 }
 
 const ELAI_SIDEBAR = document.createElement('div')
 ELAI_SIDEBAR.classList.add('elai-sidebar')
 
-let newObjects = [];
-let newObjectCounter = 0;
-let newObjCreation = 'disabled';
-const createNewObjectButton = createNewButton('new-el-selector', 'click', toggleNewObjCreation);
+const createNewObjectButton = createNewButton('new-el-selector', '+', 'click', toggleNewObjCreation);
 ELAI_SIDEBAR.appendChild(createNewObjectButton)
 
 function createObject(e) {
-  document.addEventListener("mousemove", updateCoords);
+  e.preventDefault();
+  e.stopPropagation();
   let newObject = document.createElement("div");
   body.appendChild(newObject);
   newObject.classList.add("newObject");
   newObject.id = `newObject-${newObjectCounter}`;
-
+  
   newObjects.push({
     name: newObject.id,
     initialPosY: e.clientY,
@@ -67,21 +70,28 @@ function createObject(e) {
   });
   newObject.style.left = e.clientX + "px";
   newObject.style.top = e.clientY + "px";
+  document.addEventListener("mousemove", updateSize);
 }
 
-function updateCoords(e) {
+function updateSize(e) {
+  e.preventDefault();
+  e.stopPropagation();
   let newObject = document.querySelectorAll(".newObject")[newObjectCounter];
-  let { left, top, width, height, initialPosX, initialPosY } = objectsCoords[
+  let { left, top, width, height, initialPosX, initialPosY } = newObjects[
     newObjectCounter
   ];
-  width = Math.abs(e.clientX - left);
-  if (initialPosX - e.clientX >= 0) {
-    left = initialPosX - e.clientX;
-    newObject.style.transform = `translateX(-${left}px)`;
+  width = Math.abs(e.clientX - initialPosX);
+  if (initialPosX > e.clientX) {
+    left -= (initialPosX - e.clientX);
+    newObject.style.left = left +'px';
+  }else {
+    newObject.style.left = left + "px";
   }
-  height = Math.abs(e.clientY - top);
-  if (initialPosY - e.clientY >= 0) {
-    top = top - (initialPosY - e.clientY);
+  height = Math.abs(e.clientY - initialPosY);
+  if (initialPosY > e.clientY) {
+    top -= (initialPosY - e.clientY);
+    newObject.style.top = top + "px";
+  } else {
     newObject.style.top = top + "px";
   }
   newObject.style.height = height + "px";
@@ -90,27 +100,25 @@ function updateCoords(e) {
 
 function stopChangingCoords() {
   newObjectCounter++;
-  document.removeEventListener("mousemove", updateCoords);
+  document.removeEventListener("mousemove", updateSize);
 }
 
-
 function toggleNewObjCreation() {
-  newObjCreation === 'disabled' ? enableNewObjCreation : disableNewObjectCreation
+  newObjCreation === 'disabled' ? enableNewObjCreation() : disableNewObjectCreation()
 }
 
 function enableNewObjCreation() {
-  newObjCreation = 'enabled'
+  newObjCreation = 'enabled';
   body.addEventListener("mousedown", createObject);
   body.addEventListener("mouseup", stopChangingCoords);
-  body.addEventListener("mouseout", stopChangingCoords);
+  // document.addEventListener("mouseout", stopChangingCoords);
 }
 function disableNewObjectCreation() {
   newObjCreation = 'disabled'
   body.removeEventListener("mousedown", createObject);
   body.removeEventListener("mouseup", stopChangingCoords);
+  // document.removeEventListener("mouseout", stopChangingCoords);
 }
-
-const cursor = document.createElement("span");
 
 // key combination to activate the script;
 // ctrl + shift + a (windows)
@@ -160,12 +168,6 @@ function enableElementSelection(e) {
   setTimeout(() => {
     ELAI.style.display = "block";
   }, 200);
-
-  const newElSelector = document.querySelector('#new-el-selector')
-  newElSelector.addEventListener('click', enableElementSelection)
-
-
-  const newElCreator = document.querySelector('#new-el-creator')
 
   const textModifier = document.querySelector("#resize-text-modifier");
 
@@ -352,7 +354,7 @@ function disableElementSelection(e) {
   const resizer = document.querySelector("#resize-text-modifier");
   resizeObserver.unobserve(resizer);
   selectedEl.el.removeChild(ELAI);
-  selectedEl.el.removeChild(ELAI);
+  body.removeChild(ELAI_SIDEBAR);
   document.removeEventListener("click", enableElementSelection);
   selectedEl.el.removeEventListener("mousedown", enableRepositioning);
   document.removeEventListener("contextmenu", disableElementSelection);

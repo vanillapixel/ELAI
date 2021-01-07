@@ -47,8 +47,27 @@ h1 {
 }
 
 .newObject {
-  border: 2px solid black;
+  box-shadow: inset 0px 0px 0px 1px black;
+  box-sizing: border-box;
   position: absolute;
+  }body {&:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50vh;
+    height: 100vh;
+    width: 1px;
+    background: red;
+}
+&:before {
+  content: '';
+  position: absolute;
+  top: 50vh;
+  left: 0;
+  height: 1px;
+  width: 100vh;
+  background: red;
+}
 }
 
 
