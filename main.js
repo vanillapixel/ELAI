@@ -54,6 +54,9 @@ ELAI_SIDEBAR.appendChild(createNewObjectButton)
 function createObject(e) {
   e.preventDefault();
   e.stopPropagation();
+  if(e.target.id === 'new-el-selector'){
+    return
+  }
   let newObject = document.createElement("div");
   body.appendChild(newObject);
   newObject.classList.add("newObject");
@@ -76,10 +79,9 @@ function createObject(e) {
 function updateSize(e) {
   e.preventDefault();
   e.stopPropagation();
-  let newObject = document.querySelectorAll(".newObject")[newObjectCounter];
-  let { left, top, width, height, initialPosX, initialPosY } = newObjects[
-    newObjectCounter
-  ];
+  let allNewObjects = document.querySelectorAll(".newObject");
+  let newObject = allNewObjects[allNewObjects.length-1];
+  let { left, top, width, height, initialPosX, initialPosY } = newObjects[newObjects.length-1];
   width = Math.abs(e.clientX - initialPosX);
   if (initialPosX > e.clientX) {
     left -= (initialPosX - e.clientX);
@@ -98,7 +100,9 @@ function updateSize(e) {
   newObject.style.width = width + "px";
 }
 
-function stopChangingCoords() {
+function stopChangingCoords(e) {
+  e.preventDefault();
+  e.stopPropagation();
   newObjectCounter++;
   document.removeEventListener("mousemove", updateSize);
 }
@@ -111,13 +115,15 @@ function enableNewObjCreation() {
   newObjCreation = 'enabled';
   body.addEventListener("mousedown", createObject);
   body.addEventListener("mouseup", stopChangingCoords);
-  // document.addEventListener("mouseout", stopChangingCoords);
+  body.addEventListener("mouseleave", stopChangingCoords);
+  showNotificationBar('success', 'Create new object mode enabled')
 }
 function disableNewObjectCreation() {
   newObjCreation = 'disabled'
   body.removeEventListener("mousedown", createObject);
   body.removeEventListener("mouseup", stopChangingCoords);
-  // document.removeEventListener("mouseout", stopChangingCoords);
+  body.removeEventListener("mouseleave", stopChangingCoords);
+  showNotificationBar('error', 'Create new object mode disabled')
 }
 
 // key combination to activate the script;
@@ -330,7 +336,7 @@ function toggleHighlightElement(
     setItemCssProperties(el, propertiesToChange);
   }
   /* if mouse LEAVES the element area - REMOVE highlight to element */
-  if (e.type === "mouseout") {
+  if (e.type === "mouseleave") {
     restoreItemCssProperties(el, highlightedElement.props);
   }
 }
