@@ -1,6 +1,6 @@
 let scriptActive = false;
 let globalStyle = false;
-let selectedEl;
+let selectedEl = {};
 
 let mouseStartX = 0;
 let mouseStartY = 0;
@@ -12,8 +12,9 @@ const body = document.querySelector("body");
 const resizeObserver = new ResizeObserver(enablingResizing);
 
 let newObjects = [];
-let newObjectCounter = 0;
-let newObjCreation = 'disabled';
+let newElementCounter = 0;
+let newElementCreation = "disabled";
+let newestCreatedElement;
 
 //TODO: injected ELAI CSS style
 // const ELAICssStyle
@@ -31,100 +32,130 @@ ELAI.innerHTML = `<div class="icon" id="text-modifier">M
 
 // const ELAI_SIDEBAR = document.createElement('ELAI-sidebar')
 // ELAI_SIDEBAR.innerHTML = `    <div id="sidebar-wrapper">
-// <div class="sidebar-button" id="new-el-selector" alt="Select new element">■</div>
+// <div class="sidebar-button" id="create-new-element-button" alt="Select new element">■</div>
 // <div class="sidebar-button">+</div>
 // <div class="sidebar-button"></div>
 // </div>`
 
-function createNewButton(id, content, trigger, callback) {
-  const button = document.createElement('div')
-  button.classList.add('sidebar-button')
+function createNewUiButton(id, content, trigger, parent, callback) {
+  const button = document.createElement("div");
+  button.classList.add("sidebar-button");
   button.textContent = content;
-  button.id = id
-  button.addEventListener(trigger, callback)
-  return button
+  button.id = id;
+  button.addEventListener(trigger, callback);
+  parent.appendChild(button);
+  return button;
 }
 
-const ELAI_SIDEBAR = document.createElement('div')
-ELAI_SIDEBAR.classList.add('elai-sidebar')
+const ELAI_SIDEBAR = document.createElement("div");
+ELAI_SIDEBAR.classList.add("elai-sidebar");
 
-const createNewObjectButton = createNewButton('new-el-selector', '+', 'click', toggleNewObjCreation);
-ELAI_SIDEBAR.appendChild(createNewObjectButton)
+const sidebarUiButtons = [
+  createNewUiButton(
+    "select-new-element-button",
+    "^",
+    "click",
+    ELAI_SIDEBAR,
+    enableSelectElement
+  ),
+  createNewUiButton(
+    "create-new-element-button",
+    "+",
+    "click",
+    ELAI_SIDEBAR,
+    toggleNewElementCreation
+  ),
+];
+sidebarUiButtons.forEach((sidebarUiButton) =>
+  ELAI_SIDEBAR.appendChild(sidebarUiButton)
+);
 
-function createObject(e) {
+function createNewElement(e) {
   e.preventDefault();
   e.stopPropagation();
-  if(e.target.id === 'new-el-selector'){
-    return
+  if (e.target.classList.contains("sidebar-button")) {
+    console.log("pito");
+    return;
   }
-  let newObject = document.createElement("div");
-  body.appendChild(newObject);
-  newObject.classList.add("newObject");
-  newObject.id = `newObject-${newObjectCounter}`;
-  
+  newestCreatedElement = document.createElement("div");
+  body.appendChild(newestCreatedElement);
+  newestCreatedElement.classList.add("newObject");
+  newestCreatedElement.id = `newObject-${newElementCounter}`;
   newObjects.push({
-    name: newObject.id,
+    name: newestCreatedElement.id,
+    width: 0,
+    height: 0,
     initialPosY: e.clientY,
     initialPosX: e.clientX,
     left: e.clientX,
     top: e.clientY,
-    width: 0,
-    height: 0,
   });
-  newObject.style.left = e.clientX + "px";
-  newObject.style.top = e.clientY + "px";
+  newestCreatedElement.style.left = e.clientX + "px";
+  newestCreatedElement.style.top = e.clientY + "px";
   document.addEventListener("mousemove", updateSize);
+  newElementCounter++;
 }
 
 function updateSize(e) {
   e.preventDefault();
   e.stopPropagation();
-  let allNewObjects = document.querySelectorAll(".newObject");
-  let newObject = allNewObjects[allNewObjects.length-1];
-  let { left, top, width, height, initialPosX, initialPosY } = newObjects[newObjects.length-1];
+  const lastElementCreated = newObjects[newObjects.length - 1];
+  let { left, top, width, height, initialPosX, initialPosY } = newObjects[
+    newObjects.length - 1
+  ];
+  lastElementCreated.width = Math.abs(e.clientX - initialPosX);
+  console.log(lastElementCreated.width, newObjects[newObjects.length - 1]);
   width = Math.abs(e.clientX - initialPosX);
   if (initialPosX > e.clientX) {
-    left -= (initialPosX - e.clientX);
-    newObject.style.left = left +'px';
-  }else {
-    newObject.style.left = left + "px";
+    left -= initialPosX - e.clientX;
+    newestCreatedElement.style.left = left + "px";
+  } else {
+    newestCreatedElement.style.left = left + "px";
   }
   height = Math.abs(e.clientY - initialPosY);
   if (initialPosY > e.clientY) {
-    top -= (initialPosY - e.clientY);
-    newObject.style.top = top + "px";
+    top -= initialPosY - e.clientY;
+    newestCreatedElement.style.top = top + "px";
   } else {
-    newObject.style.top = top + "px";
+    newestCreatedElement.style.top = top + "px";
   }
-  newObject.style.height = height + "px";
-  newObject.style.width = width + "px";
+  newestCreatedElement.style.height = height + "px";
+  newestCreatedElement.style.width = width + "px";
+  console.log(newObjects[newObjects.length - 1]);
 }
 
 function stopUpdateSize(e) {
   e.preventDefault();
   e.stopPropagation();
-  newObjectCounter++;
+  console.log(newObjects[newObjects.length - 1]);
   document.removeEventListener("mousemove", updateSize);
+  body.addEventListener("mouseleave", stopUpdateSize);
+  toggleNewElementCreation();
+  selectElement(e);
+  newestCreatedElement = null;
 }
 
-function toggleNewObjCreation() {
-  newObjCreation === 'disabled' ? enableNewObjCreation() : disableNewObjectCreation()
+function toggleNewElementCreation() {
+  newElementCreation === "disabled"
+    ? enableNewElementCreation()
+    : disableNewObjectCreation();
 }
 
-function enableNewObjCreation() {
-  newObjCreation = 'enabled';
+function enableNewElementCreation() {
+  newElementCreation = "enabled";
   //TODO: newly created element is SELECTED_EL.el
-  body.addEventListener("mousedown", createObject);
+  body.addEventListener("mousedown", createNewElement);
   body.addEventListener("mouseup", stopUpdateSize);
   body.addEventListener("mouseleave", stopUpdateSize);
-  showNotificationBar('success', 'Create new object mode enabled')
+  showNotificationBar("success", "Create new object mode enabled");
+  newestCreatedElement = null;
 }
 function disableNewObjectCreation() {
-  newObjCreation = 'disabled'
-  body.removeEventListener("mousedown", createObject);
+  newElementCreation = "disabled";
+  body.removeEventListener("mousedown", createNewElement);
   body.removeEventListener("mouseup", stopUpdateSize);
   body.removeEventListener("mouseleave", stopUpdateSize);
-  showNotificationBar('error', 'Create new object mode disabled')
+  showNotificationBar("error", "Create new object mode disabled");
 }
 
 // key combination to activate the script;
@@ -145,9 +176,8 @@ function toggleScriptActivation(e) {
     if (scriptActive) {
       // setGlobalStyle();
       showNotificationBar("success", "ELAI Activated");
-      document.addEventListener("click", enableElementSelection);
-      body.appendChild(ELAI_SIDEBAR)
-
+      body.appendChild(ELAI_SIDEBAR);
+      enableSelectElement();
     } else {
       showNotificationBar("error", "ELAI Dectivated");
       disableElementSelection(e);
@@ -155,22 +185,27 @@ function toggleScriptActivation(e) {
   }
 }
 
-class Element {
-  constructor(el) {
-    this.el = el;
-    this.specs = getComputedStyle(this.el);
-    this.top = this.specs.top;
-    this.left = this.specs.left;
-    this.width = this.specs.width;
-    this.height = this.specs.height;
-  }
+function enableSelectElement() {
+  document.addEventListener("click", selectElement);
 }
 
-function enableElementSelection(e) {
-  document.removeEventListener("click", enableElementSelection);
-  selectedEl = new Element(e.target);
+function selectElement(e) {
+  if (e.target.classList.contains("sidebar-button")) {
+    console.log("pito");
+    return;
+  }
+  document.removeEventListener("click", selectElement);
+  console.log(newestCreatedElement);
+  selectedEl.el = newestCreatedElement || e.target;
+  newestCreatedElement
+    ? selectedEl.el.appendChild(document.createElement("text"))
+    : null;
+  selectedEl.specs = getComputedStyle(selectedEl.el);
+  const { specs } = selectedEl;
   selectedEl.el.style.minWidth = "30px";
+  selectedEl.el.style.minHeight = "30px";
   selectedEl.el.style.whiteSpace = "pre-wrap";
+  console.log(specs.width);
   injectELAI();
   setTimeout(() => {
     ELAI.style.display = "block";
@@ -180,11 +215,11 @@ function enableElementSelection(e) {
 
   const translationModifier = document.querySelector("#translation-modifier");
   textModifier.value = selectedEl.el.childNodes[0].textContent;
-  textModifier.style.font = getComputedStyle(selectedEl.el).font;
-  textModifier.style.paddingLeft = selectedEl.specs.paddingLeft;
-  textModifier.style.paddingRight = selectedEl.specs.paddingRight;
-  textModifier.style.paddingTop = selectedEl.specs.paddingTop;
-  textModifier.style.paddingBottom = selectedEl.specs.paddingBottom;
+  textModifier.style.font = specs.font;
+  textModifier.style.paddingLeft = specs.paddingLeft;
+  textModifier.style.paddingRight = specs.paddingRight;
+  textModifier.style.paddingTop = specs.paddingTop;
+  textModifier.style.paddingBottom = specs.paddingBottom;
 
   textModifier.addEventListener("input", changeText);
   enablingResizing(selectedEl);
@@ -362,7 +397,7 @@ function disableElementSelection(e) {
   resizeObserver.unobserve(resizer);
   selectedEl.el.removeChild(ELAI);
   body.removeChild(ELAI_SIDEBAR);
-  document.removeEventListener("click", enableElementSelection);
+  document.removeEventListener("click", selectElement);
   selectedEl.el.removeEventListener("mousedown", enableRepositioning);
   document.removeEventListener("contextmenu", disableElementSelection);
   document.removeEventListener("mouseenter", toggleHighlightElement);
