@@ -190,7 +190,8 @@ function enableSelectElement() {
 }
 
 function selectElement(e) {
-  if (e.target.classList.contains("sidebar-button")) {
+  console.log(e.target);
+  if (e.target.classList.contains("sidebar-button") || e.target === body) {
     console.log("pito");
     return;
   }
