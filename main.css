@@ -88,7 +88,7 @@ ELAI #text-modifier {
   left: -20%;
 }
 
-ELAI #text-modifier .icon {
+ELAI #text-modifier .ELAI-ui-button {
   top: 0;
   left: 0;
   z-index: -1;
@@ -122,7 +122,7 @@ ELAI #resize-text-modifier {
   box-sizing: border-box;
 }
 
-ELAI .icon {
+ELAI .ELAI-ui-button {
   height: 25px;
   width: 25px;
   border-radius: 50%;
