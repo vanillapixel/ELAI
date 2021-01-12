@@ -12,15 +12,25 @@ body {
 .container {
   width: 50vw;
   height: 70vh;
+  display: -webkit-box;
+  display: -ms-flexbox;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
   margin: auto;
 }
 
 h1 {
-  box-shadow: 0 0 10px red;
+  -webkit-box-shadow: 0 0 10px red;
+          box-shadow: 0 0 10px red;
   cursor: text;
   padding: 15px;
 }
@@ -29,15 +39,27 @@ h1 {
   position: fixed;
   top: 50%;
   left: 0;
-  transform: translateY(-50%);
+  -webkit-transform: translateY(-50%);
+          transform: translateY(-50%);
+  display: -webkit-box;
+  display: -ms-flexbox;
   display: flex;
-  flex-direction: column;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
 }
 
 .elai-sidebar .sidebar-button {
+  display: -webkit-box;
+  display: -ms-flexbox;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
   height: 50px;
   width: 50px;
   background: #1f1e1e;
@@ -46,8 +68,10 @@ h1 {
 }
 
 .newObject {
-  box-shadow: inset 0px 0px 0px 1px black;
-  box-sizing: border-box;
+  -webkit-box-shadow: inset 0px 0px 0px 1px black;
+          box-shadow: inset 0px 0px 0px 1px black;
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
   position: absolute;
 }
 
@@ -98,7 +122,8 @@ ELAI #text-modifier .ELAI-ui-button {
 ELAI #translation-modifier {
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  -webkit-transform: translate(-50%, -50%);
+          transform: translate(-50%, -50%);
   cursor: move;
   z-index: 1;
 }
@@ -119,7 +144,8 @@ ELAI #resize-text-modifier {
   outline: none;
   overflow: hidden;
   white-space: pre-wrap;
-  box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
 }
 
 ELAI .ELAI-ui-button {
@@ -133,3 +159,12 @@ ELAI .ELAI-ui-button {
   line-height: 30px;
   font-size: 15px;
 }
+
+ELAI #resizer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  -webkit-transform: translate(50%, 50%);
+          transform: translate(50%, 50%);
+}
+/*# sourceMappingURL=main.css.map */

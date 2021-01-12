@@ -148,4 +148,10 @@ ELAI {
     line-height: 30px;
     font-size: 15px;
   }
+  #resizer {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    transform: translate(50%, 50%);
+  }
 }
