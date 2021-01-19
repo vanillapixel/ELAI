@@ -8,8 +8,6 @@ let [currentX, currentY] = "00";
 
 const body = document.querySelector("body");
 
-const resizeObserver = new ResizeObserver(enablingResizing);
-
 let newObjects = [];
 let newElementCounter = 0;
 
@@ -27,13 +25,10 @@ ELAI.innerHTML = `<div class="ELAI-ui-button" id="text-modifier">M
                     </div>
                     <div class="ELAI-ui-button" id="rotation-modifier">R</div>
                     <div class="ELAI-ui-button" id="translation-modifier">T</div>
-                    <textarea
-                      id="resize-text-modifier">
-                    </textarea>`;
-
+`
 function createNewUiButton(id, content, eventListnersArray, parent) {
   const button = document.createElement("div");
-  const classes = parent === ELAI_SIDEBAR ? ["sidebar-button"] : ["ELAI-ui-button"] 
+  const classes = parent === ELAI_SIDEBAR ? ["ELAI-sidebar-ui-button"] : ["ELAI-ui-button"] 
   button.classList.add([...classes]);
   button.textContent = content;
   button.id = id;
@@ -63,20 +58,26 @@ const sidebarUiButtons = [
     [[undefined, 'click', toggleNewElementCreation ]],
     ELAI_SIDEBAR
   ),
+  createNewUiButton(
+    "create-new-element-button",
+    "-",
+    [[undefined, 'click', deselectElement]],
+    ELAI_SIDEBAR
+  ),
 ];
 
 const resizer = createNewUiButton(
   "resizer",
   "♥",
   [
-    [ undefined,'mousedown', enableUpdateSize], 
+    [ undefined,'mousedown', enableResizeElement], 
     [ document,'mouseup', disableUpdateSize] 
   ],
   ELAI
 );
 
 function disableUpdateSize() {
-  document.removeEventListener('mousemove', updateSize)
+  document.removeEventListener('mousemove', resizeElement)
 }
 
 sidebarUiButtons.forEach((sidebarUiButton) =>
@@ -86,7 +87,7 @@ sidebarUiButtons.forEach((sidebarUiButton) =>
 function createNewElement(e) {
   e.preventDefault();
   e.stopPropagation();
-  if (e.target.classList.contains("sidebar-button")) {
+  if (e.target.classList.contains("ELAI-sidebar-ui-button")) {
     return;
   }
   const createdElement = document.createElement("div");
@@ -105,17 +106,17 @@ function createNewElement(e) {
   });
   createdElement.style.left = e.clientX + "px";
   createdElement.style.top = e.clientY + "px";
-  enableUpdateSize(e);
+  enableResizeElement(e);
   newElementCounter++;
 }
 
-function enableUpdateSize(e) {
+function enableResizeElement(e) {
   mouseStartX = e.clientX;
   mouseStartY = e.clientY;
-  document.addEventListener("mousemove", updateSize);
+  document.addEventListener("mousemove", resizeElement);
 }
 
-function updateSize(e) {
+function resizeElement(e) {
   e.preventDefault();
   e.stopPropagation();
   let { top, left, width, height } = selectedEl.el.getBoundingClientRect();
@@ -131,7 +132,7 @@ function updateSize(e) {
   selectedEl.el.style.height = height + "px";
 }
 
-function updateSize2(e) {
+function resizeElement2(e) {
   e.preventDefault();
   e.stopPropagation();
   let { top,left,width,height } = selectedEl.el.getBoundingClientRect();
@@ -179,7 +180,7 @@ function enableNewElementCreation() {
 }
 function disableNewObjectCreation() {
   body.removeEventListener("mousedown", createNewElement);
-  document.removeEventListener("mousemove", updateSize);
+  document.removeEventListener("mousemove", resizeElement);
   body.removeEventListener("mouseup", stopUpdateSize);
   body.removeEventListener("mouseleave", stopUpdateSize);
   showNotificationBar("error", "Create new object mode disabled");
@@ -226,6 +227,7 @@ function toggleElementSelection() {
 function selectElement(e) {
   if (
     e.target.classList.contains("ELAI-ui-button") ||
+    e.target.classList.contains("ELAI-sidebar-ui-button") ||
     e.target === body ||
     e.target === selectedEl.el
   ) {
@@ -233,6 +235,7 @@ function selectElement(e) {
   }
   toggleElementSelection();
   selectedEl.el =  e.target;
+  selectedEl.el.setAttribute('contenteditable', true);
   selectedEl.el.appendChild(document.createElement("text"))
   selectedEl.specs = getComputedStyle(selectedEl.el);
   const { specs } = selectedEl;
@@ -255,6 +258,13 @@ function selectElement(e) {
   // enablingResizing(selectedEl);
   // resizeObserver.observe(textModifier);
   // translationModifier.addEventListener("mousedown", enableRepositioning);
+}
+
+function deselectElement() {
+  console.log(selectedEl.el)
+  selectedEl.el.setAttribute('contenteditable', false);
+  selectedEl.el.removeChild(ELAI)
+  selectedEl.el = null
 }
 
 function injectELAI() {
@@ -424,7 +434,6 @@ function disableElementSelection(e) {
   // const ELAICssStyle = document.querySelector("#ELAIStyle");
   // ELAICssStyle.innerHTML = "";
   const resizer = document.querySelector("#resize-text-modifier");
-  resizeObserver.unobserve(resizer);
   selectedEl.el.removeChild(ELAI);
   body.removeChild(ELAI_SIDEBAR);
   document.removeEventListener("dblclick", selectElement);

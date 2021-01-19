@@ -50,7 +50,7 @@ h1 {
           flex-direction: column;
 }
 
-.elai-sidebar .sidebar-button {
+.elai-sidebar .ELAI-sidebar-ui-button {
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
