@@ -27,6 +27,10 @@ h1 {
 
 //TODO: move the sidebar inside the ELAI element
 
+[contenteditable] {
+  outline: 0px solid transparent;
+}
+
 .elai-sidebar {
   position: fixed;
   top: 50%;

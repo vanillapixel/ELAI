@@ -19,25 +19,26 @@ let elementSelectionActive = false;
 // const ELAICssStyle
 
 const ELAI = document.createElement("ELAI");
-ELAI.innerHTML = `<div class="ELAI-ui-button" id="text-modifier">M
-                      <div class="ELAI-ui-button">S</div>
-                      <div class="ELAI-ui-button">C</div>
+ELAI.setAttribute("contenteditable", false);
+ELAI.innerHTML = `<div contenteditable=false class="ELAI-ui-button" id="text-modifier">M
+                      <div contenteditable=false class="ELAI-ui-button">S</div>
+                      <div contenteditable=false class="ELAI-ui-button">C</div>
                     </div>
-                    <div class="ELAI-ui-button" id="rotation-modifier">R</div>
-                    <div class="ELAI-ui-button" id="translation-modifier">T</div>
-`
+                    <div contenteditable=false class="ELAI-ui-button" id="rotation-modifier">R</div>
+                    <div contenteditable=false class="ELAI-ui-button" id="translation-modifier">T</div>
+`;
 function createNewUiButton(id, content, eventListnersArray, parent) {
   const button = document.createElement("div");
-  const classes = parent === ELAI_SIDEBAR ? ["ELAI-sidebar-ui-button"] : ["ELAI-ui-button"] 
+  const classes =
+    parent === ELAI_SIDEBAR ? ["ELAI-sidebar-ui-button"] : ["ELAI-ui-button"];
   button.classList.add([...classes]);
   button.textContent = content;
   button.id = id;
-  eventListnersArray.forEach(eventListenerEntry => {
+  eventListnersArray.forEach((eventListenerEntry) => {
     // if trigger is undefined the button itself is the trigger
     let [trigger = button, eventType, callback] = eventListenerEntry;
     trigger.addEventListener(eventType, callback);
-  }
-    )
+  });
   parent.appendChild(button);
   return button;
 }
@@ -49,19 +50,19 @@ const sidebarUiButtons = [
   createNewUiButton(
     "select-new-element-button",
     "^",
-    [[undefined, 'click', toggleElementSelection ]],
+    [[undefined, "click", toggleElementSelection]],
     ELAI_SIDEBAR
   ),
   createNewUiButton(
     "create-new-element-button",
     "+",
-    [[undefined, 'click', toggleNewElementCreation ]],
+    [[undefined, "click", toggleNewElementCreation]],
     ELAI_SIDEBAR
   ),
   createNewUiButton(
     "create-new-element-button",
     "-",
-    [[undefined, 'click', deselectElement]],
+    [[undefined, "click", deselectElement]],
     ELAI_SIDEBAR
   ),
 ];
@@ -70,14 +71,14 @@ const resizer = createNewUiButton(
   "resizer",
   "♥",
   [
-    [ undefined,'mousedown', enableResizeElement], 
-    [ document,'mouseup', disableUpdateSize] 
+    [undefined, "mousedown", enableResizeElement],
+    [document, "mouseup", disableUpdateSize],
   ],
   ELAI
 );
 
 function disableUpdateSize() {
-  document.removeEventListener('mousemove', resizeElement)
+  document.removeEventListener("mousemove", resizeElement);
 }
 
 sidebarUiButtons.forEach((sidebarUiButton) =>
@@ -91,7 +92,7 @@ function createNewElement(e) {
     return;
   }
   const createdElement = document.createElement("div");
-  selectedEl.el = createdElement
+  selectedEl.el = createdElement;
   body.appendChild(createdElement);
   createdElement.classList.add("newObject");
   createdElement.id = `newObject-${newElementCounter}`;
@@ -120,14 +121,14 @@ function resizeElement(e) {
   e.preventDefault();
   e.stopPropagation();
   let { top, left, width, height } = selectedEl.el.getBoundingClientRect();
-  console.log(mouseStartX, mouseStartY)
-  console.log(e.clientX, e.clientY)
-  console.log(width)
+  console.log(mouseStartX, mouseStartY);
+  console.log(e.clientX, e.clientY);
+  console.log(width);
   let deltaX = e.clientX - left > 0 ? Math.round(e.clientX - left) : 0;
-  let deltaY = e.clientY - top > 0 ? Math.round(e.clientY - top) : 0; 
-  console.log(deltaX, deltaY)
-  width = deltaX
-  height = deltaY
+  let deltaY = e.clientY - top > 0 ? Math.round(e.clientY - top) : 0;
+  console.log(deltaX, deltaY);
+  width = deltaX;
+  height = deltaY;
   selectedEl.el.style.width = width + "px";
   selectedEl.el.style.height = height + "px";
 }
@@ -135,7 +136,7 @@ function resizeElement(e) {
 function resizeElement2(e) {
   e.preventDefault();
   e.stopPropagation();
-  let { top,left,width,height } = selectedEl.el.getBoundingClientRect();
+  let { top, left, width, height } = selectedEl.el.getBoundingClientRect();
   selectedEl.el.width = Math.abs(e.clientX - mouseStartX);
   width = Math.abs(e.clientX - mouseStartX);
   if (mouseStartX > e.clientX) {
@@ -234,9 +235,9 @@ function selectElement(e) {
     return;
   }
   toggleElementSelection();
-  selectedEl.el =  e.target;
-  selectedEl.el.setAttribute('contenteditable', true);
-  selectedEl.el.appendChild(document.createElement("text"))
+  selectedEl.el = e.target;
+  selectedEl.el.setAttribute("contenteditable", true);
+  selectedEl.el.appendChild(document.createElement("text"));
   selectedEl.specs = getComputedStyle(selectedEl.el);
   const { specs } = selectedEl;
   selectedEl.el.style.minWidth = "30px";
@@ -246,7 +247,7 @@ function selectElement(e) {
 
   // const textModifier = document.querySelector("#resize-text-modifier");
 
-  // const translationModifier = document.querySelector("#translation-modifier");
+  const translationModifier = document.querySelector("#translation-modifier");
   // textModifier.value = selectedEl.el.childNodes[0].textContent;
   // textModifier.style.font = specs.font;
   // textModifier.style.paddingLeft = specs.paddingLeft;
@@ -257,14 +258,14 @@ function selectElement(e) {
   // textModifier.addEventListener("input", changeText);
   // enablingResizing(selectedEl);
   // resizeObserver.observe(textModifier);
-  // translationModifier.addEventListener("mousedown", enableRepositioning);
+  translationModifier.addEventListener("mousedown", enableRepositioning);
 }
 
 function deselectElement() {
-  console.log(selectedEl.el)
-  selectedEl.el.setAttribute('contenteditable', false);
-  selectedEl.el.removeChild(ELAI)
-  selectedEl.el = null
+  console.log(selectedEl.el);
+  selectedEl.el.setAttribute("contenteditable", false);
+  selectedEl.el.removeChild(ELAI);
+  selectedEl.el = null;
 }
 
 function injectELAI() {
