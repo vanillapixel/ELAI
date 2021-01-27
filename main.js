@@ -11,7 +11,7 @@ const body = document.querySelector("body");
 let newObjects = [];
 let newElementCounter = 0;
 
-let scriptActive = false;
+let scriptActive = true;
 let newElementCreationActive = false;
 let elementSelectionActive = false;
 
@@ -70,15 +70,19 @@ const sidebarUiButtons = [
 const resizer = createNewUiButton(
   "resizer",
   "♥",
-  [
-    [undefined, "mousedown", enableResizeElement],
-    [document, "mouseup", disableUpdateSize],
-  ],
+  [[undefined, "mousedown", enableResizeElement]],
+  ELAI
+);
+const rotator = createNewUiButton(
+  "rotation-modifier",
+  "O",
+  [[undefined, "mousedown", enableRotateElement]],
   ELAI
 );
 
 function disableUpdateSize() {
   document.removeEventListener("mousemove", resizeElement);
+  document.removeEventListener("mouseup", disableUpdateSize);
 }
 
 sidebarUiButtons.forEach((sidebarUiButton) =>
@@ -114,46 +118,29 @@ function createNewElement(e) {
 function enableResizeElement(e) {
   mouseStartX = e.clientX;
   mouseStartY = e.clientY;
+  selectedEl.el.initialWidth = parseInt(getComputedStyle(selectedEl.el).width);
+  selectedEl.el.initialHeight = parseInt(
+    getComputedStyle(selectedEl.el).height
+  );
+  console.log(selectedEl.el.initialWidth);
   document.addEventListener("mousemove", resizeElement);
+  document.addEventListener("mouseup", disableUpdateSize);
 }
 
 function resizeElement(e) {
   e.preventDefault();
   e.stopPropagation();
-  let { top, left, width, height } = selectedEl.el.getBoundingClientRect();
-  console.log(mouseStartX, mouseStartY);
-  console.log(e.clientX, e.clientY);
-  console.log(width);
-  let deltaX = e.clientX - left > 0 ? Math.round(e.clientX - left) : 0;
-  let deltaY = e.clientY - top > 0 ? Math.round(e.clientY - top) : 0;
-  console.log(deltaX, deltaY);
-  width = deltaX;
-  height = deltaY;
-  selectedEl.el.style.width = width + "px";
-  selectedEl.el.style.height = height + "px";
-}
-
-function resizeElement2(e) {
-  e.preventDefault();
-  e.stopPropagation();
-  let { top, left, width, height } = selectedEl.el.getBoundingClientRect();
-  selectedEl.el.width = Math.abs(e.clientX - mouseStartX);
-  width = Math.abs(e.clientX - mouseStartX);
-  if (mouseStartX > e.clientX) {
-    left -= mouseStartX - e.clientX;
-    selectedEl.el.style.left = left + "px";
-  } else {
-    selectedEl.el.style.left = left + "px";
-  }
-  height = Math.abs(e.clientY - mouseStartY);
-  if (mouseStartY > e.clientY) {
-    top -= mouseStartY - e.clientY;
-    selectedEl.el.style.top = top + "px";
-  } else {
-    selectedEl.el.style.top = top + "px";
-  }
-  selectedEl.el.style.height = height + "px";
-  selectedEl.el.style.width = width + "px";
+  const updatedWidth = selectedEl.el.initialWidth + e.clientX - mouseStartX;
+  const updatedHeight = selectedEl.el.initialHeight + e.clientY - mouseStartY;
+  console.log(
+    selectedEl.el.initialWidth,
+    e.clientX,
+    mouseStartX,
+    e.clientX - mouseStartX,
+    updatedWidth
+  );
+  selectedEl.el.style.width = updatedWidth + "px";
+  selectedEl.el.style.height = updatedHeight + "px";
 }
 
 function stopUpdateSize(e) {
@@ -196,7 +183,8 @@ function disableNewObjectCreation() {
 // rotate, change background, resize, move (done), font-size
 
 document.addEventListener("keyup", toggleScriptActivation);
-
+toggleElementSelection();
+body.appendChild(ELAI_SIDEBAR);
 function toggleScriptActivation(e) {
   // ctrl + shift + a
   const ACTIVATION_SHORTCUT = e.ctrlKey && e.shiftKey && e.which === 65;
@@ -205,8 +193,6 @@ function toggleScriptActivation(e) {
     if (scriptActive) {
       // setGlobalStyle();
       showNotificationBar("success", "ELAI Activated");
-      toggleElementSelection();
-      body.appendChild(ELAI_SIDEBAR);
     } else {
       showNotificationBar("error", "ELAI Dectivated");
       disableElementSelection(e);
@@ -220,7 +206,6 @@ function toggleElementSelection() {
     document.addEventListener("dblclick", selectElement);
   } else {
     showNotificationBar("error", "Element Selection Disabled");
-    document.removeEventListener("dblclick", selectElement);
   }
   elementSelectionActive = !elementSelectionActive;
 }
@@ -304,8 +289,12 @@ function stopRepositioning(e) {
 
 // TODO: element rotation
 
-// let rotation = Math.round((e.clientX - mouseStartX) / 0.7);
-// selectedEl.el.style.transform = `rotate(${rotation}deg)`;
+function enableRotateElement(e) {}
+
+function rotateElement(e) {
+  let rotation = Math.round((e.clientX - mouseStartX) / 0.7);
+  selectedEl.el.style.transform = `rotate(${rotation}deg)`;
+}
 
 function enableRepositioning(e) {
   e.preventDefault();
@@ -321,20 +310,17 @@ function enableRepositioning(e) {
   body.addEventListener("mouseup", stopRepositioning);
 }
 
-function enablingResizing() {
-  const resizer = document.querySelector("#resize-text-modifier");
+function paddingCalculator() {
+  selectedEl.specs = getComputedStyle(selectedEl.el);
   const paddingLR =
     Number(selectedEl.specs.paddingLeft.slice(0, -2)) +
     Number(selectedEl.specs.paddingRight.slice(0, -2));
   const paddingTB =
     Number(selectedEl.specs.paddingTop.slice(0, -2)) +
     Number(selectedEl.specs.paddingBottom.slice(0, -2));
-  let width = resizer.style.width.slice(0, -2) - paddingLR;
-
-  let height = resizer.style.height.slice(0, -2) - paddingTB;
-
-  selectedEl.el.style.width = width + "px";
-  selectedEl.el.style.height = height + "px";
+  let width = selectedEl.specs.width.slice(0, -2) - paddingLR;
+  let height = selectedEl.specs.height.slice(0, -2) - paddingTB;
+  return [width, height];
 }
 
 function showNotificationBar(type, message) {
@@ -434,7 +420,6 @@ function disableElementSelection(e) {
   e.preventDefault();
   // const ELAICssStyle = document.querySelector("#ELAIStyle");
   // ELAICssStyle.innerHTML = "";
-  const resizer = document.querySelector("#resize-text-modifier");
   selectedEl.el.removeChild(ELAI);
   body.removeChild(ELAI_SIDEBAR);
   document.removeEventListener("dblclick", selectElement);
