@@ -1,89 +1,81 @@
 let globalStyle = false;
 let selectedEl = {};
+let hoveredElement;
 
-let mouseStartX = 0;
-let mouseStartY = 0;
-
-let [currentX, currentY] = "00";
+let [mouseStartX, mouseStartY] = [0, 0];
+let [currentX, currentY] = [0, 0];
 
 const body = document.querySelector("body");
 
 let newObjects = [];
 let newElementCounter = 0;
 
-let scriptActive = true;
+let isScriptActive = false;
 let newElementCreationActive = false;
 let elementSelectionActive = false;
 
-//TODO: injected ELAI CSS style
-// const ELAICssStyle
+let snapOnRotation = true;
 
 const ELAI = document.createElement("ELAI");
+const ELAI_SIDEBAR = document.createElement("div");
 ELAI.setAttribute("contenteditable", false);
-ELAI.innerHTML = `<div contenteditable=false class="ELAI-ui-button" id="text-modifier">M
-                      <div contenteditable=false class="ELAI-ui-button">S</div>
-                      <div contenteditable=false class="ELAI-ui-button">C</div>
-                    </div>
-                    <div contenteditable=false class="ELAI-ui-button" id="rotation-modifier">R</div>
-                    <div contenteditable=false class="ELAI-ui-button" id="translation-modifier">T</div>
-`;
-function createNewUiButton(id, content, eventListnersArray, parent) {
-  const button = document.createElement("div");
-  const classes =
-    parent === ELAI_SIDEBAR ? ["ELAI-sidebar-ui-button"] : ["ELAI-ui-button"];
-  button.classList.add([...classes]);
-  button.textContent = content;
-  button.id = id;
-  eventListnersArray.forEach((eventListenerEntry) => {
-    // if trigger is undefined the button itself is the trigger
-    let [trigger = button, eventType, callback] = eventListenerEntry;
-    trigger.addEventListener(eventType, callback);
-  });
-  parent.appendChild(button);
-  return button;
+ELAI_SIDEBAR.setAttribute("contenteditable", false);
+ELAI_SIDEBAR.classList.add("elai-sidebar");
+
+function excludeElaiElementsCondition(e) {
+  return (
+    e.target.classList.contains("elai-button") ||
+    e.target === body ||
+    e.target === selectedEl.el ||
+    e.target === ELAI
+  );
 }
 
-const ELAI_SIDEBAR = document.createElement("div");
-ELAI_SIDEBAR.classList.add("elai-sidebar");
+function createNewUiButton(id, content, eventListner, callback) {
+  const button = document.createElement("div");
+  button.classList.add("elai-button");
+  button.innerHTML = content;
+  button.id = id;
+  button.addEventListener(eventListner, callback);
+  return button;
+}
 
 const sidebarUiButtons = [
   createNewUiButton(
     "select-new-element-button",
     "^",
-    [[undefined, "click", toggleElementSelection]],
-    ELAI_SIDEBAR
+    "click",
+    toggleElementSelection
   ),
   createNewUiButton(
     "create-new-element-button",
     "+",
-    [[undefined, "click", toggleNewElementCreation]],
-    ELAI_SIDEBAR
+    "click",
+    toggleNewElementCreation
   ),
-  createNewUiButton(
-    "create-new-element-button",
-    "-",
-    [[undefined, "click", deselectElement]],
-    ELAI_SIDEBAR
-  ),
+  createNewUiButton("create-new-element-button", "-", "click", deselectElement),
 ];
 
 const resizer = createNewUiButton(
   "resizer",
   "♥",
-  [[undefined, "mousedown", enableResizeElement]],
-  ELAI
+  "mousedown",
+  enableResizeElement
 );
 const rotator = createNewUiButton(
   "rotation-modifier",
   "O",
-  [[undefined, "mousedown", enableRotateElement]],
-  ELAI
+  "mousedown",
+  enableRotateElement
+);
+const repositioner = createNewUiButton(
+  "translation-modifier",
+  "T",
+  "mousedown",
+  enableMoveElement
 );
 
-function disableUpdateSize() {
-  document.removeEventListener("mousemove", resizeElement);
-  document.removeEventListener("mouseup", disableUpdateSize);
-}
+[resizer, rotator, repositioner].forEach((button) => ELAI.appendChild(button));
 
 sidebarUiButtons.forEach((sidebarUiButton) =>
   ELAI_SIDEBAR.appendChild(sidebarUiButton)
@@ -96,6 +88,8 @@ function createNewElement(e) {
     return;
   }
   const createdElement = document.createElement("div");
+  //this allows the new element text to be editable - empty elements texts can't be edited
+  createdElement.textContent = " ";
   selectedEl.el = createdElement;
   body.appendChild(createdElement);
   createdElement.classList.add("newObject");
@@ -115,6 +109,11 @@ function createNewElement(e) {
   newElementCounter++;
 }
 
+function disableResizeElement() {
+  document.removeEventListener("mousemove", resizeElement);
+  document.removeEventListener("mouseup", disableResizeElement);
+}
+
 function enableResizeElement(e) {
   mouseStartX = e.clientX;
   mouseStartY = e.clientY;
@@ -122,9 +121,8 @@ function enableResizeElement(e) {
   selectedEl.el.initialHeight = parseInt(
     getComputedStyle(selectedEl.el).height
   );
-  console.log(selectedEl.el.initialWidth);
   document.addEventListener("mousemove", resizeElement);
-  document.addEventListener("mouseup", disableUpdateSize);
+  document.addEventListener("mouseup", disableResizeElement);
 }
 
 function resizeElement(e) {
@@ -132,125 +130,116 @@ function resizeElement(e) {
   e.stopPropagation();
   const updatedWidth = selectedEl.el.initialWidth + e.clientX - mouseStartX;
   const updatedHeight = selectedEl.el.initialHeight + e.clientY - mouseStartY;
-  console.log(
-    selectedEl.el.initialWidth,
-    e.clientX,
-    mouseStartX,
-    e.clientX - mouseStartX,
-    updatedWidth
-  );
   selectedEl.el.style.width = updatedWidth + "px";
   selectedEl.el.style.height = updatedHeight + "px";
-}
-
-function stopUpdateSize(e) {
-  e.preventDefault();
-  e.stopPropagation();
-  toggleNewElementCreation();
-  selectElement(e);
-  selectedEl.el = null;
 }
 
 function toggleNewElementCreation() {
   !newElementCreationActive
     ? enableNewElementCreation()
-    : disableNewObjectCreation();
+    : disableCreateNewElement();
   newElementCreationActive = !newElementCreationActive;
 }
 
 function enableNewElementCreation() {
   //TODO: newly created element is SELECTED_EL.el
-  body.addEventListener("mousedown", createNewElement);
-  body.addEventListener("mouseup", stopUpdateSize);
-  body.addEventListener("mouseleave", stopUpdateSize);
+  deselectElement();
+  document.addEventListener("mousedown", createNewElement);
+  document.addEventListener("mouseup", disableCreateNewElement);
+  document.addEventListener("mouseleave", disableCreateNewElement);
   showNotificationBar("success", "Create new object mode enabled");
-  newestCreatedElement = null;
+  newElementCreationActive = true;
 }
-function disableNewObjectCreation() {
-  body.removeEventListener("mousedown", createNewElement);
+function disableCreateNewElement(e) {
+  selectElement(e, selectedEl.el);
+  disableResizeElement();
+  document.removeEventListener("mousedown", createNewElement);
   document.removeEventListener("mousemove", resizeElement);
-  body.removeEventListener("mouseup", stopUpdateSize);
-  body.removeEventListener("mouseleave", stopUpdateSize);
+  document.removeEventListener("mouseup", disableCreateNewElement);
+  document.removeEventListener("mouseleave", disableCreateNewElement);
+  newElementCreationActive = false;
   showNotificationBar("error", "Create new object mode disabled");
 }
-
-// key combination to activate the script;
-// ctrl + shift + a (windows)
 
 //TODO: Backup properties function is useless?
 
 //TODO: Create sidebar for actions:
 // rotate, change background, resize, move (done), font-size
+// TODO: fix the script activation for production
 
 document.addEventListener("keyup", toggleScriptActivation);
-toggleElementSelection();
+setGlobalStyle();
+body.appendChild(ELAI);
 body.appendChild(ELAI_SIDEBAR);
 function toggleScriptActivation(e) {
-  // ctrl + shift + a
-  const ACTIVATION_SHORTCUT = e.ctrlKey && e.shiftKey && e.which === 65;
+  // key combination to activate the script;
+  // ctrl + shift + a (windows)
+  // let ACTIVATION_SHORTCUT = e.ctrlKey && e.shiftKey && e.which === 65;
+  //TODO: delete ctrl shortcut for production
+  // ACTIVATION_SHORTCUT = "ControlLeft";
+  let ACTIVATION_SHORTCUT = e.ctrlKey && e.code === "AltLeft";
   if (ACTIVATION_SHORTCUT) {
-    scriptActive = !scriptActive;
-    if (scriptActive) {
-      // setGlobalStyle();
+    isScriptActive = !isScriptActive;
+    if (isScriptActive) {
+      setGlobalStyle();
       showNotificationBar("success", "ELAI Activated");
+      enableSelectElement();
+      document.addEventListener("mouseover", highlightHoveredElement);
     } else {
       showNotificationBar("error", "ELAI Dectivated");
-      disableElementSelection(e);
+      disableSelectElement();
     }
   }
 }
 
+function enableSelectElement() {
+  showNotificationBar("success", "Element Selection enabled");
+  document.addEventListener("dblclick", selectElement);
+  elementSelectionActive = true;
+}
+function disableSelectElement() {
+  showNotificationBar("error", "Element Selection Disabled");
+  document.removeEventListener("dblclick", selectElement);
+  elementSelectionActive = false;
+}
 function toggleElementSelection() {
   if (!elementSelectionActive) {
-    showNotificationBar("success", "Element Selection enabled");
-    document.addEventListener("dblclick", selectElement);
   } else {
-    showNotificationBar("error", "Element Selection Disabled");
   }
   elementSelectionActive = !elementSelectionActive;
 }
 
-function selectElement(e) {
-  if (
-    e.target.classList.contains("ELAI-ui-button") ||
-    e.target.classList.contains("ELAI-sidebar-ui-button") ||
-    e.target === body ||
-    e.target === selectedEl.el
-  ) {
-    return;
+function selectElement(e, newElement) {
+  e.preventDefault();
+  if (excludeElaiElementsCondition(e)) {
+    if (!newElement) return;
   }
-  toggleElementSelection();
-  selectedEl.el = e.target;
+  if (selectedEl.el != e.target && !newElement) {
+    deselectElement();
+  }
+  ELAI.style.display = "block";
+  selectedEl.el = newElement || e.target;
+  e.target.tagName === "SPAN"
+    ? (selectedEl.el.style.display = "inline-block")
+    : null;
   selectedEl.el.setAttribute("contenteditable", true);
-  selectedEl.el.appendChild(document.createElement("text"));
-  selectedEl.specs = getComputedStyle(selectedEl.el);
-  const { specs } = selectedEl;
-  selectedEl.el.style.minWidth = "30px";
-  selectedEl.el.style.minHeight = "30px";
-  selectedEl.el.style.whiteSpace = "pre-wrap";
+  selectedEl.el.setAttribute("role", "textbox");
+  selectedEl.coords = getComputedStyle(selectedEl.el);
+  selectedEl.rotation = 0;
   injectELAI();
-
-  // const textModifier = document.querySelector("#resize-text-modifier");
-
-  const translationModifier = document.querySelector("#translation-modifier");
-  // textModifier.value = selectedEl.el.childNodes[0].textContent;
-  // textModifier.style.font = specs.font;
-  // textModifier.style.paddingLeft = specs.paddingLeft;
-  // textModifier.style.paddingRight = specs.paddingRight;
-  // textModifier.style.paddingTop = specs.paddingTop;
-  // textModifier.style.paddingBottom = specs.paddingBottom;
-
-  // textModifier.addEventListener("input", changeText);
-  // enablingResizing(selectedEl);
-  // resizeObserver.observe(textModifier);
-  translationModifier.addEventListener("mousedown", enableRepositioning);
+  selectedEl.el.style.zIndex = !selectedEl.el.style.zIndex
+    ? 1
+    : selectedEl.el.style.zIndex;
+  selectedEl.el.classList.add("ELAI-selected-element");
 }
 
 function deselectElement() {
-  console.log(selectedEl.el);
-  selectedEl.el.setAttribute("contenteditable", false);
-  selectedEl.el.removeChild(ELAI);
-  selectedEl.el = null;
+  if (selectedEl.el) {
+    selectedEl.el.removeChild(ELAI);
+    selectedEl.el.setAttribute("contenteditable", false);
+    selectedEl.el.classList.remove("ELAI-selected-element");
+    selectedEl.el = null;
+  }
 }
 
 function injectELAI() {
@@ -265,66 +254,113 @@ function injectELAI() {
 //   })
 // }
 
-function changeText(e) {
-  selectedEl.el.childNodes[0].textContent = e.target.value;
+function enableMoveElement(e) {
+  e.preventDefault();
+  const { m41, m42 } = new WebKitCSSMatrix(
+    getComputedStyle(selectedEl.el).transform
+  );
+  selectedEl.el.currentTransform = deleteDuplicateTransformProperty(
+    selectedEl.el,
+    "translate"
+  );
+
+  mouseStartX = e.clientX;
+  mouseStartY = e.clientY;
+  // regex filters the numbers from the transform string
+  [currentX, currentY] = [m41, m42];
+  body.addEventListener("mousemove", moveElement);
+  body.addEventListener("mouseup", disableMoveElement);
 }
 
-//TODO: Change activation listener
-
-function startRepositioning(e) {
+function moveElement(e) {
   e.preventDefault();
   e.stopPropagation();
   let translationX = Math.round(Number(currentX) + e.clientX - mouseStartX);
   let translationY = Math.round(Number(currentY) + e.clientY - mouseStartY);
-  selectedEl.el.style.transform = `translate(${translationX}px, ${translationY}px)`;
+  selectedEl.el.style.transform = `translate(${translationX}px, ${translationY}px) ${selectedEl.el.currentTransform}`;
 }
 
-function stopRepositioning(e) {
+function disableMoveElement(e) {
   e.preventDefault();
   mouseStartX = e.clientX;
   mouseStartY = e.clientY;
-  body.removeEventListener("mousemove", startRepositioning);
-  body.removeEventListener("mouseup", stopRepositioning);
+  body.removeEventListener("mousemove", moveElement);
+  body.removeEventListener("mouseup", disableMoveElement);
 }
 
 // TODO: element rotation
 
-function enableRotateElement(e) {}
+function enableRotateElement() {
+  selectedEl.currentTransform = deleteDuplicateTransformProperty(
+    selectedEl.el,
+    "rotate"
+  );
+  document.addEventListener("mousemove", rotateElement);
+  document.addEventListener("mouseup", disableRotateElement);
+}
 
 function rotateElement(e) {
-  let rotation = Math.round((e.clientX - mouseStartX) / 0.7);
-  selectedEl.el.style.transform = `rotate(${rotation}deg)`;
-}
-
-function enableRepositioning(e) {
   e.preventDefault();
-  mouseStartX = e.clientX;
-  mouseStartY = e.clientY;
-  // regex filters the numbers from the transform string
-  const currentTranslation = selectedEl.el.style.transform || "0 0";
-  //
-  [currentX, currentY] = currentTranslation
-    .split(" ")
-    .map((x) => x.replace(/[^-.0-9]/g, ""));
-  body.addEventListener("mousemove", startRepositioning);
-  body.addEventListener("mouseup", stopRepositioning);
+  const { top, left, width, height } = selectedEl.el.getBoundingClientRect();
+  const [centerX, centerY] = [left + width / 2, top + height / 2];
+  let { rotation } = selectedEl;
+  rotation = Math.round(
+    Math.atan2(e.pageX - centerX, -(e.pageY - centerY)) * (180 / Math.PI)
+  );
+  if (snapOnRotation) {
+    let snapThreshold = 2;
+    [0, 45, 90, 180, -45, -90, -180].forEach((angleSnap) => {
+      rotation =
+        rotation >= angleSnap - snapThreshold &&
+        rotation <= angleSnap + snapThreshold
+          ? angleSnap
+          : rotation;
+    });
+  }
+  selectedEl.el.style.transform = `${selectedEl.currentTransform}rotate(${rotation}deg)`;
 }
 
-function paddingCalculator() {
-  selectedEl.specs = getComputedStyle(selectedEl.el);
-  const paddingLR =
-    Number(selectedEl.specs.paddingLeft.slice(0, -2)) +
-    Number(selectedEl.specs.paddingRight.slice(0, -2));
-  const paddingTB =
-    Number(selectedEl.specs.paddingTop.slice(0, -2)) +
-    Number(selectedEl.specs.paddingBottom.slice(0, -2));
-  let width = selectedEl.specs.width.slice(0, -2) - paddingLR;
-  let height = selectedEl.specs.height.slice(0, -2) - paddingTB;
-  return [width, height];
+function disableRotateElement() {
+  document.removeEventListener("mousemove", rotateElement);
+  document.removeEventListener("mouseup", disableRotateElement);
+}
+
+function extractTransformPropertyValue(element, property) {
+  if (
+    property !== "translate" &&
+    property !== "rotate" &&
+    property !== "skew" &&
+    property !== "scale"
+  ) {
+    throw Error(
+      `The 2nd argument MUST be either translate, rotate, skew or scale, instead it's ${property}`
+    );
+  }
+  let propertyValue = element.style.transform
+    .split(") ")
+    .filter((x) => x.includes(property))
+    .toString()
+    .split(" ")
+    .map((x) => Number(x.replace(/[^-.0-9]/g, "")));
+  return propertyValue == false ? 0 : propertyValue;
+}
+
+function deleteDuplicateTransformProperty(element, property) {
+  let arrayOfTransformProps = element.style.transform.split(") ");
+  //adds a parenthesis back as it gets removed by the split method (except for the last element of the array)
+  arrayOfTransformProps = arrayOfTransformProps.map((prop, id) => {
+    if (id != arrayOfTransformProps.length - 1) {
+      prop += ")";
+    }
+    return prop;
+  });
+  let newTransformProps = arrayOfTransformProps.filter(
+    (x) => !x.includes(property)
+  );
+  return newTransformProps.join(" ");
 }
 
 function showNotificationBar(type, message) {
-  const body = document.querySelector("body");
   const background = {
     success: "#51bb51",
     warning: "#f19f0b",
@@ -363,12 +399,6 @@ function showNotificationBar(type, message) {
   }, 3500);
 }
 
-let SELECTED_EL = { el: null, x: 0, y: 0 };
-let highlightedElement = { el: null, props: {} };
-let originalElShadow;
-let originalElTransition;
-let positionString;
-
 function backupItemCssProperties(props, dest) {
   props.forEach(
     (prop) => (dest[prop] = getComputedStyle(el).getPropertyValue(prop))
@@ -386,27 +416,26 @@ function restoreItemCssProperties(el, props) {
   let propKeys = Object.keys(props);
   propKeys.forEach((prop) => (el.style[prop] = props[prop]));
 }
-
-function toggleHighlightElement(
-  e,
-  propertiesToChange = { boxShadow: "0px 0px 0px 3px red", cursor: "pointer" }
-) {
+function highlightHoveredElement(e) {
   e.preventDefault();
   e.stopPropagation();
-
-  /* if mouse ENTERS the element area - ADD highlight to element */
-  if (e.type === "mouseover") {
-    setItemCssProperties(el, propertiesToChange);
-  }
-  /* if mouse LEAVES the element area - REMOVE highlight to element */
-  if (e.type === "mouseleave") {
-    restoreItemCssProperties(el, highlightedElement.props);
+  e.stopImmediatePropagation();
+  hoveredElement ? (hoveredElement.style.outline = "") : null;
+  if (!excludeElaiElementsCondition(e)) {
+    hoveredElement = e.target;
+    hoveredElement.style.outline = "2px dashed yellow";
+  } else {
+    hoveredElement = undefined;
   }
 }
 
 function setGlobalStyle() {
-  const css = "* {overflow: visible !important; cursor: pointer !important};";
-  head = document.head || document.getElementsByTagName("head")[0];
+  const css = `
+  * {overflow: visible !important;}
+  .ELAI-selected-element {min-width:30px !important;min-height:30px !important; white-space:pre-wrap !important;  outline: 2px dashed red !important;
+  };
+  `;
+  const head = document.head || document.getElementsByTagName("head")[0];
   if (!document.querySelector("#ELAIStyle")) {
     style = document.createElement("style");
     style.id = "ELAIStyle";
@@ -416,16 +445,14 @@ function setGlobalStyle() {
   style.textContent = css;
 }
 
-function disableElementSelection(e) {
-  e.preventDefault();
+function disableScript() {
   // const ELAICssStyle = document.querySelector("#ELAIStyle");
   // ELAICssStyle.innerHTML = "";
-  selectedEl.el.removeChild(ELAI);
-  body.removeChild(ELAI_SIDEBAR);
+  isScriptActive = !isScriptActive;
   document.removeEventListener("dblclick", selectElement);
-  selectedEl.el.removeEventListener("mousedown", enableRepositioning);
-  document.removeEventListener("contextmenu", disableElementSelection);
-  document.removeEventListener("mouseenter", toggleHighlightElement);
-  document.removeEventListener("mouseleave", toggleHighlightElement);
+
+  selectedEl.el.removeEventListener("mousedown", enableMoveElement);
+  body.removeChild(ELAI_SIDEBAR);
+  body.removeChild(ELAI);
   selectedEl.el = null;
 }
