@@ -23,7 +23,7 @@ h1 {
   box-shadow: 0 0 10px red;
   cursor: text;
   padding: 15px;
-  transform: rotate(90deg) translate(100px, 100px);
+  transform: translate(100px, 50px) rotate(100deg);
 }
 
 [contenteditable] {
