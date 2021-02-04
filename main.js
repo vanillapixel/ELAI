@@ -1,5 +1,10 @@
 // TODO: CURRENT PROBLEMS:
 // -second showNotificationBar won't be shown if two of the same type are requested within a 3.5s gap
+// - change ELAI icons look
+// - change sidebar buttons look according to status
+// - create script usage instruction:
+// -    - add page title
+// -    - add list commands
 
 let ACTIVATION_SHORTCUT = (e) => e.ctrlKey && e.code === "AltLeft";
 
@@ -34,7 +39,8 @@ function excludeElaiElementsCondition(e) {
     e.target.classList.contains("elai-button") ||
     e.target === body ||
     e.target === selectedEl.el ||
-    e.target === ELAI
+    e.target === ELAI ||
+    e.target === ELAI_SIDEBAR
   );
 }
 
@@ -49,18 +55,12 @@ function createNewUiButton(id, content, eventListner, callback) {
 
 const sidebarUiButtons = [
   createNewUiButton(
-    "select-new-element-button",
-    "^",
-    "click",
-    toggleElementSelection
-  ),
-  createNewUiButton(
     "create-new-element-button",
     "+",
     "click",
     toggleNewElementCreation
   ),
-  createNewUiButton("create-new-element-button", "-", "click", deselectElement),
+  createNewUiButton("deselect-element-button", "-", "click", deselectElement),
 ];
 
 const resizer = createNewUiButton(
@@ -91,7 +91,7 @@ sidebarUiButtons.forEach((sidebarUiButton) =>
 function createElement(e) {
   e.preventDefault();
   e.stopPropagation();
-  if (e.target.classList.contains("ELAI-sidebar-ui-button")) {
+  if (e.target.classList.contains("elai-button")) {
     return;
   }
   const createdElement = document.createElement("div");
@@ -113,6 +113,7 @@ function createElement(e) {
   createdElement.style.top = e.clientY + "px";
   enableResizeElement(e);
   newElementCounter++;
+  selectedEl.el.textContent = "change/remove text";
 }
 
 function disableResizeElement() {
@@ -155,7 +156,6 @@ function enableCreateElement() {
   newElementCreationActive = true;
 }
 function disableCreateElement(e) {
-  selectedEl.el.textContent = " mirm";
   selectElement(e, selectedEl.el);
   disableResizeElement();
   document.removeEventListener("mousedown", createElement);
@@ -172,7 +172,7 @@ function disableCreateElement(e) {
 // rotate, change background, resize, move (done), font-size
 // TODO: fix the script activation for production
 
-document.addEventListener("keyup", toggleScriptActivation);
+document.addEventListener("keydown", toggleScriptActivation);
 setGlobalStyle();
 function toggleScriptActivation(e) {
   // key combination to activate the script;
@@ -183,14 +183,12 @@ function toggleScriptActivation(e) {
   if (ACTIVATION_SHORTCUT(e)) {
     isScriptActive = !isScriptActive;
     if (isScriptActive) {
-      console.log(isScriptActive);
       setGlobalStyle();
       showNotificationBar("success", "ELAI Activated");
       enableSelectElement();
       document.addEventListener("mouseover", highlightHoveredElement);
       body.appendChild(ELAI_SIDEBAR);
     } else {
-      console.log(isScriptActive);
       showNotificationBar("error", "ELAI Dectivated");
       disableSelectElement();
       disableScript();
@@ -220,7 +218,6 @@ function selectElement(e, newElement) {
   if (excludeElaiElementsCondition(e)) {
     if (!newElement) return;
   }
-  console.log(e.target);
   if (selectedEl.el != e.target && !newElement) {
     deselectElement();
   }
@@ -275,14 +272,22 @@ function getInitialTransformValues() {
   const { m41, m42, a, b } = new WebKitCSSMatrix(
     getComputedStyle(selectedEl.el).transform
   );
-  [selectedEl.initialTranslateX, selectedEl.initialTranslateY] = [m41, m42];
-  selectedEl.initialRotationX = Math.round(Math.atan2(b, a) * (180 / Math.PI));
-  selectedEl.initialScale = Math.sqrt(a * a + b * b);
+  return [
+    m41,
+    m42,
+    Math.round(Math.atan2(b, a) * (180 / Math.PI)),
+    Math.sqrt(a * a + b * b),
+  ];
 }
 
 function enableMoveElement(e) {
   e.preventDefault();
-  getInitialTransformValues();
+  [
+    selectedEl.initialTranslateX,
+    selectedEl.initialTranslateY,
+    selectedEl.initialRotationX,
+    selectedEl.initialScale,
+  ] = getInitialTransformValues();
   mouseStartX = e.clientX;
   mouseStartY = e.clientY;
   // regex filters the numbers from the transform string
@@ -318,7 +323,54 @@ function disableMoveElement(e) {
 
 // TODO: element rotation
 
-function enableRotateElement() {
+function getOffsetTop(elem) {
+  let offsetTop = 0;
+  do {
+    if (!isNaN(elem.offsetLeft)) {
+      offsetTop += elem.offsetTop;
+    }
+  } while ((elem = elem.offsetParent));
+  return offsetTop;
+}
+function getOffsetLeft(elem) {
+  let offsetLeft = 0;
+  do {
+    if (!isNaN(elem.offsetLeft)) {
+      offsetLeft += elem.offsetLeft;
+    }
+  } while ((elem = elem.offsetParent));
+  return offsetLeft;
+}
+
+function enableRotateElement(e) {
+  // const pito = document.createElement("div");
+  // pito.style.background = "red";
+  // pito.style.width = "298px";
+  // pito.style.height = "298px";
+  // pito.style.borderRadius = "50%";
+  // pito.style.position = "absolute";
+  const { width, height } = selectedEl.el.getBoundingClientRect();
+  const [left, top] = [
+    getOffsetLeft(selectedEl.el),
+    getOffsetTop(selectedEl.el),
+  ];
+  [
+    selectedEl.initialTranslateX,
+    selectedEl.initialTranslateY,
+    selectedEl.initialRotationX,
+    selectedEl.initialScale,
+  ] = getInitialTransformValues();
+  const [centerX, centerY] = [
+    left + selectedEl.initialTranslateX + width / 2,
+    top + selectedEl.initialTranslateY + height / 2,
+  ];
+  selectedEl.rotation = Math.round(
+    Math.atan2(e.pageX - centerX, -(e.pageY - centerY)) * (180 / Math.PI)
+  );
+  // pito.style.left = centerX + "px";
+  // pito.style.top = centerY + "px";
+  // pito.style.transform = "translate(-50%, -50%)";
+  // body.appendChild(pito);
   getInitialTransformValues();
   document.addEventListener("mousemove", rotateElement);
   document.addEventListener("mouseup", disableRotateElement);
@@ -326,9 +378,21 @@ function enableRotateElement() {
 
 function rotateElement(e) {
   e.preventDefault();
-  const { initialTranslateX, initialTranslateY, initialScale } = selectedEl;
-  const { top, left, width, height } = selectedEl.el.getBoundingClientRect();
-  const [centerX, centerY] = [left + width / 2, top + height / 2];
+  const {
+    initialTranslateX,
+    initialTranslateY,
+    initialRotationX,
+    initialScale,
+  } = selectedEl;
+  const { width, height } = selectedEl.el.getBoundingClientRect();
+  const [left, top] = [
+    getOffsetLeft(selectedEl.el),
+    getOffsetTop(selectedEl.el),
+  ];
+  const [centerX, centerY] = [
+    left + initialTranslateX + width / 2,
+    top + initialTranslateY + height / 2,
+  ];
   selectedEl.rotation = Math.round(
     Math.atan2(e.pageX - centerX, -(e.pageY - centerY)) * (180 / Math.PI)
   );
@@ -413,9 +477,106 @@ function highlightHoveredElement(e) {
 
 function setGlobalStyle() {
   const css = `
-  * {overflow: visible !important; user-select: none !important}
+  * {overflow: visible !important; user-select: none !important; position: relative}
   .ELAI-selected-element {min-width:30px !important;min-height:30px !important; white-space:pre-wrap !important;  outline: 2px dashed red !important;
   };
+  .elai-sidebar {
+  position: fixed;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+
+.elai-sidebar * {
+  user-select: none;
+}
+
+.elai-sidebar .elai-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  width: 50px;
+  background: #1f1e1e;
+  border-bottom: 5px solid white;
+  color: white;
+}
+
+.newObject {
+  box-shadow: inset 0px 0px 0px 1px black;
+  box-sizing: border-box;
+  position: absolute;
+}
+
+ELAI {
+  top: 0;
+  left: 0;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  display: none;
+  z-index: -1;
+}
+
+ELAI * {
+  position: absolute;
+  user-select: none;
+}
+
+ELAI .elai-button {
+  height: 25px;
+  width: 25px;
+  border: 1px solid #f05050;
+  background: white;
+  color: #f05050;
+  text-align: center;
+  line-height: 30px;
+  font-size: 15px;
+}
+
+ELAI #text-modifier {
+  top: -75%;
+  left: -20%;
+}
+
+ELAI #translation-modifier {
+  width: 100% !important;
+  top: 0;
+  left: 0;
+  height: 10px;
+  cursor: move;
+  z-index: 0;
+}
+
+ELAI #rotation-modifier {
+  top: -50px;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+}
+
+ELAI #rotation-modifier:after {
+  content: "";
+  position: absolute;
+  bottom: -200%;
+  height: 200%;
+  left: 50%;
+  transform: translate(-50%);
+  background: red;
+  width: 1px;
+}
+
+ELAI #resizer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  transform: translate(50%, 50%);
+  cursor: se-resize;
+}
   `;
   const head = document.head || document.getElementsByTagName("head")[0];
   if (!document.querySelector("#ELAIStyle")) {
@@ -431,7 +592,6 @@ function disableScript() {
   // const ELAICssStyle = document.querySelector("#ELAIStyle");
   // ELAICssStyle.innerHTML = "";
   document.removeEventListener("dblclick", selectElement);
-  console.log("ìds");
   body.removeChild(ELAI_SIDEBAR);
   selectedEl.el
     ? selectedEl.el.removeEventListener("mousedown", enableMoveElement)
