@@ -2,11 +2,13 @@
   position: relative;
   margin: 0;
   padding: 0;
+  color: rgba(255, 250, 239, 0.856);
 }
 
 body {
   height: 200vh;
-  background-color: #333333;
+  background-color: #1a1e1f;
+  font-family: monospace;
 }
 
 .container {
@@ -20,8 +22,8 @@ body {
 }
 
 h1 {
-  box-shadow: 0 0 10px red;
+  box-shadow: 0 0 10px #ff7272;
   cursor: text;
   padding: 15px;
-  transform: translate(100px, 50px) rotate(100deg);
+  transform: translate(10px, 50px) rotate(10deg);
 }

@@ -5,6 +5,7 @@
 // - create script usage instruction:
 // -    - add page title
 // -    - add list commands
+// fix bug rotation feature (bottom left tilts weirdly)
 
 let ACTIVATION_SHORTCUT = (e) => e.ctrlKey && e.code === "AltLeft";
 
@@ -23,13 +24,20 @@ let isScriptActive = false;
 let newElementCreationActive = false;
 let elementSelectionActive = false;
 
+const snapAngleDelta = 45;
+const snapThreshold = 2;
 let snapOnRotation = true;
+let snapAngles = [];
+for (let i = 0; i <= 180; i += snapAngleDelta) {
+  snapAngles = [...snapAngles, i];
+}
 
 let currentNotificationBarId;
 let notificationBarIdCounter = 0;
 
 const ELAI = document.createElement("ELAI");
 const ELAI_SIDEBAR = document.createElement("div");
+const head = document.head || document.getElementsByTagName("head")[0];
 ELAI.setAttribute("contenteditable", false);
 ELAI_SIDEBAR.setAttribute("contenteditable", false);
 ELAI_SIDEBAR.classList.add("elai-sidebar");
@@ -40,53 +48,109 @@ function excludeElaiElementsCondition(e) {
     e.target === body ||
     e.target === selectedEl.el ||
     e.target === ELAI ||
+    e.target === selectedEl.rotationTrack ||
+    e.target === selectedEl.rotationTrackCenter ||
     e.target === ELAI_SIDEBAR
   );
 }
 
-function createNewUiButton(id, content, eventListner, callback) {
-  const button = document.createElement("div");
+function createElaiButton(opts) {
+  const button = document.createElement(opts.type || "div");
   button.classList.add("elai-button");
-  button.innerHTML = content;
-  button.id = id;
-  button.addEventListener(eventListner, callback);
+  button.innerHTML = opts.content;
+  button.id = opts.id;
+  button.addEventListener(opts.eventListenerTrigger, opts.callback);
+  opts.parent.appendChild(button);
   return button;
 }
 
-const sidebarUiButtons = [
-  createNewUiButton(
-    "create-new-element-button",
-    "+",
-    "click",
-    toggleNewElementCreation
-  ),
-  createNewUiButton("deselect-element-button", "-", "click", deselectElement),
-];
+function createUiLabel(id, content, eventListner, callback) {}
 
-const resizer = createNewUiButton(
-  "resizer",
-  "♥",
-  "mousedown",
-  enableResizeElement
-);
-const rotator = createNewUiButton(
-  "rotation-modifier",
-  "O",
-  "mousedown",
-  enableRotateElement
-);
-const repositioner = createNewUiButton(
-  "translation-modifier",
-  "T",
-  "mousedown",
-  enableMoveElement
+const ELAI_BUTTONS = {
+  // ELAI SIDEBAR BUTTONS
+
+  createNewElementBtn: {
+    parent: ELAI_SIDEBAR,
+    id: "deselect-element-button",
+    type: "div",
+    content: "+",
+    eventListenerTrigger: "click",
+    callback: toggleNewElementCreation,
+  },
+
+  deselectElementBtn: {
+    parent: ELAI_SIDEBAR,
+    id: "create-new-element-button",
+    type: "div",
+    content: "-",
+    eventListenerTrigger: "click",
+    callback: deselectElement,
+  },
+
+  // ELAI ELEMENT BUTTONS
+  resizeBtn: {
+    parent: ELAI,
+    id: "resize-btn",
+    type: "div",
+    content: "♥",
+    eventListenerTrigger: "mousedown",
+    callback: enableResizeElement,
+  },
+  rotationBtn: {
+    parent: ELAI,
+    id: "rotation-btn",
+    type: "div",
+    content: "○",
+    eventListenerTrigger: "mousedown",
+    callback: enableRotateElement,
+  },
+  repositionBtn: {
+    parent: ELAI,
+    id: "reposition-btn",
+    type: "div",
+    content: "♥",
+    eventListenerTrigger: "mousedown",
+    callback: enableMoveElement,
+  },
+};
+
+selectedEl.rotationTrack = document.createElement("div");
+
+selectedEl.rotationTrack.classList.add("rotation-track");
+ELAI.appendChild(selectedEl.rotationTrack);
+
+selectedEl.rotationTrackCenter = document.createElement("div");
+
+selectedEl.rotationTrackCenter.classList.add("rotation-track-center");
+selectedEl.rotationTrack.appendChild(selectedEl.rotationTrackCenter);
+
+Object.keys(ELAI_BUTTONS).forEach((button) =>
+  createElaiButton(ELAI_BUTTONS[button])
 );
 
-[resizer, rotator, repositioner].forEach((button) => ELAI.appendChild(button));
+// bgModifier = {
+//   id: "background-modifier",
+//   type: "input",
+//   content: "■",
+//   callback: callback,
+//   valueDisplayer: bgModifier,
+// };
+// textColorModifier = {
+//   id: "text-color-modifier",
+//   type: "input",
+//   content: "■",
+//   callback: callback,
+//   valueDisplayer: bgModifier,
+// };
+// fontSizeModifier = {
+//   id: "font-size-modifier",
+//   type: "input",
+//   content: "■",
+//   callback: callback,
+//   valueDisplayer: bgModifier,
+// };
 
-sidebarUiButtons.forEach((sidebarUiButton) =>
-  ELAI_SIDEBAR.appendChild(sidebarUiButton)
-);
+const topLeftUIComponentsContainer = document.createElement("div");
 
 function createElement(e) {
   e.preventDefault();
@@ -173,7 +237,6 @@ function disableCreateElement(e) {
 // TODO: fix the script activation for production
 
 document.addEventListener("keydown", toggleScriptActivation);
-setGlobalStyle();
 function toggleScriptActivation(e) {
   // key combination to activate the script;
   // let ACTIVATION_SHORTCUT = e.ctrlKey && e.shiftKey && e.which === 65;
@@ -183,12 +246,13 @@ function toggleScriptActivation(e) {
   if (ACTIVATION_SHORTCUT(e)) {
     isScriptActive = !isScriptActive;
     if (isScriptActive) {
-      setGlobalStyle();
+      injectGlobalStyle();
       showNotificationBar("success", "ELAI Activated");
       enableSelectElement();
       document.addEventListener("mouseover", highlightHoveredElement);
       body.appendChild(ELAI_SIDEBAR);
     } else {
+      document.removeEventListener("mouseover", highlightHoveredElement);
       showNotificationBar("error", "ELAI Dectivated");
       disableSelectElement();
       disableScript();
@@ -206,6 +270,7 @@ function disableSelectElement() {
   document.removeEventListener("dblclick", selectElement);
   elementSelectionActive = false;
 }
+//TODO: implement functionality?
 function toggleElementSelection() {
   if (!elementSelectionActive) {
   } else {
@@ -221,14 +286,16 @@ function selectElement(e, newElement) {
   if (selectedEl.el != e.target && !newElement) {
     deselectElement();
   }
+  if (e.target.tagName === "img" || e.target.tagName === "svg") {
+    selectedEl.el = e.target.parentElement;
+  } else {
+    selectedEl.el = newElement || e.target;
+  }
   ELAI.style.display = "block";
-  selectedEl.el = newElement || e.target;
   e.target.tagName === "SPAN"
     ? (selectedEl.el.style.display = "inline-block")
     : null;
   selectedEl.el.setAttribute("contenteditable", true);
-  selectedEl.el.setAttribute("role", "textbox");
-  selectedEl.coords = getComputedStyle(selectedEl.el);
   selectedEl.rotation = 0;
   injectELAI();
   selectedEl.el.style.zIndex = !selectedEl.el.style.zIndex
@@ -256,6 +323,7 @@ function deleteElement(e) {
         "success",
         "Element deleted - Press ctrl + Z to restore it"
       );
+      selectedEl.el = null;
     } else
       showNotificationBar(
         "warning",
@@ -266,6 +334,9 @@ function deleteElement(e) {
 
 function injectELAI() {
   selectedEl.el.appendChild(ELAI);
+  const rotationPath = ELAI.addEventListener("click", () => {
+    selectedEl.el.activeElement;
+  });
 }
 
 function getInitialTransformValues() {
@@ -342,35 +413,33 @@ function getOffsetLeft(elem) {
   return offsetLeft;
 }
 
+// TODO: cleanup pito - rotation center reference
+
 function enableRotateElement(e) {
-  // const pito = document.createElement("div");
-  // pito.style.background = "red";
-  // pito.style.width = "298px";
-  // pito.style.height = "298px";
-  // pito.style.borderRadius = "50%";
-  // pito.style.position = "absolute";
-  const { width, height } = selectedEl.el.getBoundingClientRect();
-  const [left, top] = [
-    getOffsetLeft(selectedEl.el),
-    getOffsetTop(selectedEl.el),
-  ];
+  const { width, height, left, top } = selectedEl.el.getBoundingClientRect();
+
   [
     selectedEl.initialTranslateX,
     selectedEl.initialTranslateY,
     selectedEl.initialRotationX,
     selectedEl.initialScale,
   ] = getInitialTransformValues();
-  const [centerX, centerY] = [
-    left + selectedEl.initialTranslateX + width / 2,
-    top + selectedEl.initialTranslateY + height / 2,
-  ];
+  selectedEl.centerX = Math.round(left + width / 2);
+  selectedEl.centerY = Math.round(top + height / 2);
+  const { centerX, centerY } = selectedEl;
   selectedEl.rotation = Math.round(
-    Math.atan2(e.pageX - centerX, -(e.pageY - centerY)) * (180 / Math.PI)
+    Math.atan2(e.pageX - centerX, e.pageY - centerY) * (180 / Math.PI) * -1 +
+      180
   );
-  // pito.style.left = centerX + "px";
-  // pito.style.top = centerY + "px";
-  // pito.style.transform = "translate(-50%, -50%)";
-  // body.appendChild(pito);
+  selectedEl.rotationTrack.style.width = Math.max(width, height) + "px";
+  selectedEl.rotationTrack.style.height = Math.max(width, height) + "px";
+  selectedEl.rotationTrack.style.opacity = 0.7;
+  // TODO: create reference element to calculate perfect center
+
+  // create reference element that is always at 0 degrees or counters the rotation of the element selectedEl
+  // if selectedEl.el rotation is 45 deg, then reference el would be -45deg to be perfectly straight
+  // that way the center is always center
+
   getInitialTransformValues();
   document.addEventListener("mousemove", rotateElement);
   document.addEventListener("mouseup", disableRotateElement);
@@ -378,32 +447,22 @@ function enableRotateElement(e) {
 
 function rotateElement(e) {
   e.preventDefault();
-  const {
-    initialTranslateX,
-    initialTranslateY,
-    initialRotationX,
-    initialScale,
-  } = selectedEl;
-  const { width, height } = selectedEl.el.getBoundingClientRect();
-  const [left, top] = [
-    getOffsetLeft(selectedEl.el),
-    getOffsetTop(selectedEl.el),
-  ];
-  const [centerX, centerY] = [
-    left + initialTranslateX + width / 2,
-    top + initialTranslateY + height / 2,
-  ];
+  const { initialTranslateX, initialTranslateY, initialScale } = selectedEl;
+  const { centerX, centerY } = selectedEl;
   selectedEl.rotation = Math.round(
-    Math.atan2(e.pageX - centerX, -(e.pageY - centerY)) * (180 / Math.PI)
+    Math.atan2(e.pageX - centerX, e.pageY - centerY) * (180 / Math.PI) * -1 +
+      180
   );
   let { rotation } = selectedEl;
   if (snapOnRotation) {
-    let snapThreshold = 2;
-    [0, 45, 90, 180, -45, -90, -180].forEach((angleSnap) => {
+    snapAngles.forEach((snapAngle) => {
       rotation =
-        rotation >= angleSnap - snapThreshold &&
-        rotation <= angleSnap + snapThreshold
-          ? angleSnap
+        rotation >= snapAngle - snapThreshold &&
+        rotation <= snapAngle + snapThreshold
+          ? snapAngle
+          : rotation <= -snapAngle + snapThreshold &&
+            rotation >= -snapAngle - snapThreshold
+          ? -snapAngle
           : rotation;
     });
   }
@@ -411,6 +470,7 @@ function rotateElement(e) {
 }
 
 function disableRotateElement() {
+  selectedEl.rotationTrack.style.opacity = 0;
   document.removeEventListener("mousemove", rotateElement);
   document.removeEventListener("mouseup", disableRotateElement);
 }
@@ -469,38 +529,36 @@ function highlightHoveredElement(e) {
   hoveredElement ? (hoveredElement.style.outline = "") : null;
   if (!excludeElaiElementsCondition(e)) {
     hoveredElement = e.target;
-    hoveredElement.style.outline = "2px dashed yellow";
+    hoveredElement.style.outline = "2px dashed #8cff72";
   } else {
     hoveredElement = undefined;
   }
 }
 
-function setGlobalStyle() {
-  const css = `
+const ELAI_CSS = `
   * {overflow: visible !important; user-select: none !important; position: relative}
-  .ELAI-selected-element {min-width:30px !important;min-height:30px !important; white-space:pre-wrap !important;  outline: 2px dashed red !important;
-  };
-  .elai-sidebar {
-  position: fixed;
-  top: 50%;
-  left: 0;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  user-select: none;
+  .ELAI-selected-element {min-width:30px !important;min-height:30px !important; white-space:pre-wrap !important;  outline: 2px dashed #ff7272 !important;
+  }
+.elai-sidebar {
+    position: fixed;
+    top: 50vh;
+    left: 0;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+    z-index: 9999;
 }
-
 .elai-sidebar * {
   user-select: none;
 }
-
 .elai-sidebar .elai-button {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 50px;
   width: 50px;
-  background: #1f1e1e;
+  background: #2d2d2d;
   border-bottom: 5px solid white;
   color: white;
 }
@@ -527,6 +585,23 @@ ELAI * {
   user-select: none;
 }
 
+ELAI .rotation-track, ELAI .rotation-track-center {
+  top: 50%;
+  left: 50%;
+  transform : translate(-50%, -50%);
+  border-radius: 50%;
+}
+ELAI .rotation-track {
+  border: 2px dashed #00b7ff;
+  opacity: 0;
+}
+
+ELAI .rotation-track-center {
+  width: 5px;
+  height: 5px;
+  background: #00b7ff;
+}
+
 ELAI .elai-button {
   height: 25px;
   width: 25px;
@@ -543,34 +618,34 @@ ELAI #text-modifier {
   left: -20%;
 }
 
-ELAI #translation-modifier {
+ELAI #reposition-btn {
   width: 100% !important;
-  top: 0;
+  top: -5px;
   left: 0;
   height: 10px;
   cursor: move;
   z-index: 0;
 }
 
-ELAI #rotation-modifier {
+ELAI #rotation-btn {
   top: -50px;
   left: 50%;
   transform: translate(-50%, -50%);
   cursor: grab;
 }
 
-ELAI #rotation-modifier:after {
+ELAI #rotation-btn:after {
   content: "";
   position: absolute;
   bottom: -200%;
   height: 200%;
   left: 50%;
   transform: translate(-50%);
-  background: red;
+  background: #ff7272;
   width: 1px;
 }
 
-ELAI #resizer {
+ELAI #resize-btn {
   position: absolute;
   right: 0;
   bottom: 0;
@@ -578,25 +653,28 @@ ELAI #resizer {
   cursor: se-resize;
 }
   `;
-  const head = document.head || document.getElementsByTagName("head")[0];
+
+function injectGlobalStyle() {
   if (!document.querySelector("#ELAIStyle")) {
     style = document.createElement("style");
     style.id = "ELAIStyle";
     head.appendChild(style);
     style.type = "text/css";
   }
-  style.textContent = css;
+  style.textContent = ELAI_CSS;
 }
 
 function disableScript() {
-  // const ELAICssStyle = document.querySelector("#ELAIStyle");
-  // ELAICssStyle.innerHTML = "";
   document.removeEventListener("dblclick", selectElement);
   body.removeChild(ELAI_SIDEBAR);
+  selectedEl.el.removeChild(ELAI);
   selectedEl.el
     ? selectedEl.el.removeEventListener("mousedown", enableMoveElement)
     : null;
   selectedEl.el = null;
+  if (document.querySelector("#ELAIStyle")) {
+    head.removeChild(document.querySelector("#ELAIStyle"));
+  }
 }
 
 // functions that could be still somehow useful
