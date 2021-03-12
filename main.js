@@ -112,6 +112,27 @@ const ELAI_BUTTONS = {
     eventListenerTrigger: "mousedown",
     callback: enableMoveElement,
   },
+  // bgModifier: {
+  //   id: "background-modifier",
+  //   type: "input",
+  //   content: "■",
+  //   callback: input,
+  //   valueDisplayer: bgModifier,
+  // },
+  // textColorModifier: {
+  //   id: "text-color-modifier",
+  //   type: "input",
+  //   content: "■",
+  //   callback: input,
+  //   valueDisplayer: bgModifier,
+  // },
+  // fontSizeModifier: {
+  //   id: "font-size-modifier",
+  //   type: "input",
+  //   content: "■",
+  //   callback: input,
+  //   valueDisplayer: bgModifier,
+  // },
 };
 
 selectedEl.rotationTrack = document.createElement("div");
@@ -127,28 +148,6 @@ selectedEl.rotationTrack.appendChild(selectedEl.rotationTrackCenter);
 Object.keys(ELAI_BUTTONS).forEach((button) =>
   createElaiButton(ELAI_BUTTONS[button])
 );
-
-// bgModifier = {
-//   id: "background-modifier",
-//   type: "input",
-//   content: "■",
-//   callback: callback,
-//   valueDisplayer: bgModifier,
-// };
-// textColorModifier = {
-//   id: "text-color-modifier",
-//   type: "input",
-//   content: "■",
-//   callback: callback,
-//   valueDisplayer: bgModifier,
-// };
-// fontSizeModifier = {
-//   id: "font-size-modifier",
-//   type: "input",
-//   content: "■",
-//   callback: callback,
-//   valueDisplayer: bgModifier,
-// };
 
 const topLeftUIComponentsContainer = document.createElement("div");
 
