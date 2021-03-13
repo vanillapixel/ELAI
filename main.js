@@ -135,6 +135,30 @@ const ELAI_BUTTONS = {
   // },
 };
 
+const inputs = document.querySelectorAll('inputs')
+inputs.forEach(input => input.addEventListener('input', changeInputValue))
+
+
+//TODO: whenever you select an element the initial values for the inputs are set
+function getInitialElementStylePropertyValue(property) {
+  selectedEl[property] = e.target.value;
+}
+
+function changeInputValue(e) {
+  const property = e.target.getAttribute('ELAI-input')
+  const unit = e.target.getAttribute('ELAI-input-unit')
+  changeElementStyleProperty(property, e.target.value,unit)
+  selectedEl[property] = e.target.value;
+  selectedEl.el.style[property] = selectedEl[property]
+  console.log(selectedEl[property], e.target.value)
+
+}
+
+function changeElementStylePropertyValue(property, value, unit) {
+  unit ? selectedEl[property] = value + unit : selectedEl[property] = value
+  unit ? selectedEl.el.style[property] = value + unit : selectedEl[property] = value
+}
+
 selectedEl.rotationTrack = document.createElement("div");
 
 selectedEl.rotationTrack.classList.add("rotation-track");
