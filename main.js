@@ -38,6 +38,8 @@ let notificationBarIdCounter = 0;
 const ELAI = document.createElement("ELAI");
 const ELAI_SIDEBAR = document.createElement("div");
 const ELAI_TEXT_MODIFIERS = document.createElement("div");
+let ELAItextContent = "";
+[...ELAI.children].forEach((child) => (ELAItextContent += child.textContent));
 const head = document.head || document.getElementsByTagName("head")[0];
 ELAI.setAttribute("contenteditable", false);
 ELAI_SIDEBAR.setAttribute("contenteditable", false);
@@ -345,7 +347,12 @@ function selectElement(e, newElement) {
   } else {
     selectedEl.el = newElement || e.target;
   }
-
+  selectedEl.el.addEventListener("input", () => {
+    console.log(selectedEl.el.innerHTML);
+    if (selectedEl.el.innerHTML === "") {
+      injectELAI();
+    }
+  });
   ELAI.style.display = "block";
   e.target.tagName === "SPAN"
     ? (selectedEl.el.style.display = "inline-block")
@@ -355,7 +362,7 @@ function selectElement(e, newElement) {
   selectedEl.el.style.transition = "all 0s";
   selectedEl.rotation = 0;
   injectELAI();
-  setInitialElementStylePropertyValue();
+
   selectedEl.el.style.zIndex = !selectedEl.el.style.zIndex
     ? 1
     : selectedEl.el.style.zIndex;
@@ -365,7 +372,9 @@ function selectElement(e, newElement) {
 
 function deselectElement() {
   if (selectedEl.el) {
-    selectedEl.el.removeChild(ELAI);
+    [...selectedEl.el.children].includes(ELAI)
+      ? selectedEl.el.removeChild(ELAI)
+      : null;
     selectedEl.el.setAttribute("contenteditable", false);
     selectedEl.el.classList.remove("ELAI-selected-element");
     selectedEl.el.style.transition = selectedEl.initialStyle.transition;
@@ -393,6 +402,7 @@ function deleteElement(e) {
 
 function injectELAI() {
   selectedEl.el.appendChild(ELAI);
+  setInitialElementStylePropertyValue();
 }
 
 function getInitialTransformValues() {
@@ -594,6 +604,10 @@ function highlightHoveredElement(e) {
 const ELAI_CSS = `
   * {overflow: visible !important; user-select: none !important; position: relative}
   .ELAI-selected-element {min-width:30px !important;min-height:30px !important; white-space:pre-wrap !important;  outline: 2px dashed #ff7272 !important;
+  }
+  .ELAI-selected-element:empty {
+    background:red
+
   }
 .elai-sidebar {
     position: fixed;
