@@ -37,26 +37,36 @@ let notificationBarIdCounter = 0;
 
 const ELAI = document.createElement("ELAI");
 const ELAI_SIDEBAR = document.createElement("div");
+const ELAI_TEXT_MODIFIERS = document.createElement("div");
 const head = document.head || document.getElementsByTagName("head")[0];
 ELAI.setAttribute("contenteditable", false);
 ELAI_SIDEBAR.setAttribute("contenteditable", false);
+ELAI_TEXT_MODIFIERS.setAttribute("contenteditable", false);
 ELAI_SIDEBAR.classList.add("elai-sidebar");
+ELAI_TEXT_MODIFIERS.id = "elai-text-modifiers";
 
 function excludeElaiElementsCondition(e) {
   return (
     e.target.classList.contains("elai-button") ||
     e.target === body ||
-    e.target === selectedEl.el ||
     e.target === ELAI ||
+    e.target === ELAI_SIDEBAR ||
+    e.target === ELAI_TEXT_MODIFIERS ||
+    e.target === selectedEl.el ||
     e.target === selectedEl.rotationTrack ||
     e.target === selectedEl.rotationTrackCenter ||
-    e.target === ELAI_SIDEBAR
+    e.target.parentElement === ELAI_TEXT_MODIFIERS
   );
 }
 
 function createElaiButton(opts) {
-  const button = document.createElement(opts.type || "div");
-  button.classList.add("elai-button");
+  let button = document.createElement(opts.tagName || "div");
+  if (opts.tagName === "input") {
+    for (attribute in opts.attributes) {
+      button.setAttribute(attribute, opts.attributes[attribute]);
+    }
+  }
+  opts.classes && button.classList.add(...opts.classes);
   button.innerHTML = opts.content;
   button.id = opts.id;
   button.addEventListener(opts.eventListenerTrigger, opts.callback);
@@ -72,7 +82,6 @@ const ELAI_BUTTONS = {
   createNewElementBtn: {
     parent: ELAI_SIDEBAR,
     id: "deselect-element-button",
-    type: "div",
     content: "+",
     eventListenerTrigger: "click",
     callback: toggleNewElementCreation,
@@ -91,7 +100,7 @@ const ELAI_BUTTONS = {
   resizeBtn: {
     parent: ELAI,
     id: "resize-btn",
-    type: "div",
+    classes: ["elai-button"],
     content: "♥",
     eventListenerTrigger: "mousedown",
     callback: enableResizeElement,
@@ -99,7 +108,7 @@ const ELAI_BUTTONS = {
   rotationBtn: {
     parent: ELAI,
     id: "rotation-btn",
-    type: "div",
+    classes: ["elai-button"],
     content: "○",
     eventListenerTrigger: "mousedown",
     callback: enableRotateElement,
@@ -107,56 +116,76 @@ const ELAI_BUTTONS = {
   repositionBtn: {
     parent: ELAI,
     id: "reposition-btn",
-    type: "div",
+    classes: ["elai-button"],
     content: "♥",
     eventListenerTrigger: "mousedown",
     callback: enableMoveElement,
   },
-  // bgModifier: {
-  //   id: "background-modifier",
-  //   type: "input",
-  //   content: "■",
-  //   callback: input,
-  //   valueDisplayer: bgModifier,
-  // },
-  // textColorModifier: {
-  //   id: "text-color-modifier",
-  //   type: "input",
-  //   content: "■",
-  //   callback: input,
-  //   valueDisplayer: bgModifier,
-  // },
-  // fontSizeModifier: {
-  //   id: "font-size-modifier",
-  //   type: "input",
-  //   content: "■",
-  //   callback: input,
-  //   valueDisplayer: bgModifier,
-  // },
+  bgModifier: {
+    parent: ELAI_TEXT_MODIFIERS,
+    id: "background-modifier",
+    tagName: "input",
+    eventListenerTrigger: "input",
+    callback: changeInputValue,
+    attributes: {
+      type: "color",
+      "elai-input": "backgroundColor",
+    },
+    // valueDisplayer: bgModifier,
+  },
+  textColorModifier: {
+    parent: ELAI_TEXT_MODIFIERS,
+    id: "text-color-modifier",
+    tagName: "input",
+    eventListenerTrigger: "input",
+    callback: changeInputValue,
+    attributes: {
+      type: "color",
+      "elai-input": "color",
+    },
+    // valueDisplayer: bgModifier,
+  },
+  fontSizeModifier: {
+    parent: ELAI_TEXT_MODIFIERS,
+    id: "font-size-modifier",
+    tagName: "input",
+    eventListenerTrigger: "input",
+    callback: changeInputValue,
+    attributes: {
+      type: "number",
+      "elai-input-unit": "px",
+      "elai-input": "fontSize",
+      min: "10",
+    },
+    // valueDisplayer: bgModifier,
+  },
 };
 
-const inputs = document.querySelectorAll('inputs')
-inputs.forEach(input => input.addEventListener('input', changeInputValue))
-
-
 //TODO: whenever you select an element the initial values for the inputs are set
-function getInitialElementStylePropertyValue(property) {
-  selectedEl[property] = e.target.value;
+function setInitialElementStylePropertyValue() {
+  const textModifierInputs = document.querySelectorAll(
+    "elai #elai-text-modifiers input"
+  );
+  console.log(textModifierInputs);
+  textModifierInputs.forEach((input) => {
+    if (input.hasAttribute("elai-input-unit")) {
+      input.value = parseInt(
+        selectedEl.initialStyle[input.getAttribute("elai-input")]
+      );
+    } else {
+      console.log(selectedEl.initialStyle[input.getAttribute("elai-input")]);
+      input.value = rgbToHex(
+        selectedEl.initialStyle[input.getAttribute("elai-input")]
+      );
+    }
+  });
 }
-
 function changeInputValue(e) {
-  const property = e.target.getAttribute('ELAI-input')
-  const unit = e.target.getAttribute('ELAI-input-unit')
-  changeElementStyleProperty(property, e.target.value,unit)
-  selectedEl[property] = e.target.value;
-  selectedEl.el.style[property] = selectedEl[property]
-  console.log(selectedEl[property], e.target.value)
-
-}
-
-function changeElementStylePropertyValue(property, value, unit) {
-  unit ? selectedEl[property] = value + unit : selectedEl[property] = value
-  unit ? selectedEl.el.style[property] = value + unit : selectedEl[property] = value
+  const property = e.target.getAttribute("ELAI-input");
+  const unit = e.target.getAttribute("ELAI-input-unit");
+  unit
+    ? (selectedEl.el.style[property] = e.target.value + unit)
+    : (selectedEl.el.style[property] = e.target.value);
 }
 
 selectedEl.rotationTrack = document.createElement("div");
@@ -173,6 +202,9 @@ Object.keys(ELAI_BUTTONS).forEach((button) =>
   createElaiButton(ELAI_BUTTONS[button])
 );
 
+// TODO: extract function from selectElement
+function setInputsDefaultValue() {}
+
 const topLeftUIComponentsContainer = document.createElement("div");
 
 function createElement(e) {
@@ -182,11 +214,10 @@ function createElement(e) {
     return;
   }
   const createdElement = document.createElement("div");
-  //this allows the new element text to be editable - empty elements texts can't be edited
   selectedEl.el = createdElement;
   body.appendChild(createdElement);
-  createdElement.classList.add("newObject");
-  createdElement.id = `newObject-${newElementCounter}`;
+  createdElement.classList.add("new-oject");
+  createdElement.id = `new-object-${newElementCounter}`;
   newObjects.push({
     name: createdElement.id,
     width: 0,
@@ -268,12 +299,14 @@ function toggleScriptActivation(e) {
   // ctrl + shift + a (windows)
   if (ACTIVATION_SHORTCUT(e)) {
     isScriptActive = !isScriptActive;
+    //TODO: bundle functions in one
     if (isScriptActive) {
       injectGlobalStyle();
       showNotificationBar("success", "ELAI Activated");
       enableSelectElement();
       document.addEventListener("mouseover", highlightHoveredElement);
       body.appendChild(ELAI_SIDEBAR);
+      ELAI.appendChild(ELAI_TEXT_MODIFIERS);
     } else {
       document.removeEventListener("mouseover", highlightHoveredElement);
       showNotificationBar("error", "ELAI Dectivated");
@@ -314,18 +347,25 @@ function selectElement(e, newElement) {
   } else {
     selectedEl.el = newElement || e.target;
   }
+
   ELAI.style.display = "block";
   e.target.tagName === "SPAN"
     ? (selectedEl.el.style.display = "inline-block")
     : null;
+  selectedEl.initialStyle = { ...getComputedStyle(selectedEl.el) };
   selectedEl.el.setAttribute("contenteditable", true);
+  selectedEl.el.style.transition = "all 0s";
+  selectedEl.el.style.width = selectedEl.initialStyle.width;
+  selectedEl.el.style.height = selectedEl.initialStyle.height;
   selectedEl.rotation = 0;
   injectELAI();
+  setInitialElementStylePropertyValue();
   selectedEl.el.style.zIndex = !selectedEl.el.style.zIndex
     ? 1
     : selectedEl.el.style.zIndex;
   selectedEl.el.classList.add("ELAI-selected-element");
   document.addEventListener("keydown", deleteElement);
+  console.log(document.querySelectorAll("elai #elai-text-modifiers input"));
 }
 
 function deselectElement() {
@@ -333,6 +373,7 @@ function deselectElement() {
     selectedEl.el.removeChild(ELAI);
     selectedEl.el.setAttribute("contenteditable", false);
     selectedEl.el.classList.remove("ELAI-selected-element");
+    selectedEl.el.style.transition = selectedEl.initialStyle.transition;
     selectedEl.el = null;
   }
 }
@@ -357,9 +398,6 @@ function deleteElement(e) {
 
 function injectELAI() {
   selectedEl.el.appendChild(ELAI);
-  const rotationPath = ELAI.addEventListener("click", () => {
-    selectedEl.el.activeElement;
-  });
 }
 
 function getInitialTransformValues() {
@@ -586,10 +624,13 @@ const ELAI_CSS = `
   color: white;
 }
 
-.newObject {
+.new-object {
   box-shadow: inset 0px 0px 0px 1px black;
   box-sizing: border-box;
   position: absolute;
+  display:flex;
+  justify-content: center;
+  align-items: center;
 }
 
 ELAI {
@@ -636,9 +677,20 @@ ELAI .elai-button {
   font-size: 15px;
 }
 
-ELAI #text-modifier {
-  top: -75%;
-  left: -20%;
+ELAI #elai-text-modifiers {
+  top: -40px;
+  left: -40px;
+  display:flex;
+  flex-direction: row;
+  max-width:80px;
+  max-height: 80px;
+  flex-wrap: wrap;
+}
+ELAI #elai-text-modifiers * {
+  position: relative;
+  color: black;
+  max-width: 42%;
+  height: 40px;
 }
 
 ELAI #reposition-btn {
@@ -690,7 +742,7 @@ function injectGlobalStyle() {
 function disableScript() {
   document.removeEventListener("dblclick", selectElement);
   body.removeChild(ELAI_SIDEBAR);
-  selectedEl.el.removeChild(ELAI);
+  selectedEl.el ? selectedEl.el.removeChild(ELAI) : null;
   selectedEl.el
     ? selectedEl.el.removeEventListener("mousedown", enableMoveElement)
     : null;
@@ -698,6 +750,16 @@ function disableScript() {
   if (document.querySelector("#ELAIStyle")) {
     head.removeChild(document.querySelector("#ELAIStyle"));
   }
+}
+
+function rgbToHex(orig) {
+  let rgb = orig.replace(/\s/g, "").match(/^rgba?\((\d+),(\d+),(\d+)/i);
+  return rgb && rgb.length === 4
+    ? "#" +
+        ("0" + parseInt(rgb[1], 10).toString(16)).slice(-2) +
+        ("0" + parseInt(rgb[2], 10).toString(16)).slice(-2) +
+        ("0" + parseInt(rgb[3], 10).toString(16)).slice(-2)
+    : orig;
 }
 
 // functions that could be still somehow useful
