@@ -74,7 +74,7 @@ function createElaiButton(opts) {
   return button;
 }
 
-function createUiLabel(id, content, eventListner, callback) {}
+function createUiTooltip(id, content, eventListner, callback) {}
 
 const ELAI_BUTTONS = {
   // ELAI SIDEBAR BUTTONS
@@ -166,14 +166,12 @@ function setInitialElementStylePropertyValue() {
   const textModifierInputs = document.querySelectorAll(
     "elai #elai-text-modifiers input"
   );
-  console.log(textModifierInputs);
   textModifierInputs.forEach((input) => {
     if (input.hasAttribute("elai-input-unit")) {
       input.value = parseInt(
         selectedEl.initialStyle[input.getAttribute("elai-input")]
       );
     } else {
-      console.log(selectedEl.initialStyle[input.getAttribute("elai-input")]);
       input.value = rgbToHex(
         selectedEl.initialStyle[input.getAttribute("elai-input")]
       );
@@ -216,7 +214,7 @@ function createElement(e) {
   const createdElement = document.createElement("div");
   selectedEl.el = createdElement;
   body.appendChild(createdElement);
-  createdElement.classList.add("new-oject");
+  createdElement.classList.add("new-object");
   createdElement.id = `new-object-${newElementCounter}`;
   newObjects.push({
     name: createdElement.id,
@@ -355,8 +353,6 @@ function selectElement(e, newElement) {
   selectedEl.initialStyle = { ...getComputedStyle(selectedEl.el) };
   selectedEl.el.setAttribute("contenteditable", true);
   selectedEl.el.style.transition = "all 0s";
-  selectedEl.el.style.width = selectedEl.initialStyle.width;
-  selectedEl.el.style.height = selectedEl.initialStyle.height;
   selectedEl.rotation = 0;
   injectELAI();
   setInitialElementStylePropertyValue();
@@ -365,7 +361,6 @@ function selectElement(e, newElement) {
     : selectedEl.el.style.zIndex;
   selectedEl.el.classList.add("ELAI-selected-element");
   document.addEventListener("keydown", deleteElement);
-  console.log(document.querySelectorAll("elai #elai-text-modifiers input"));
 }
 
 function deselectElement() {
