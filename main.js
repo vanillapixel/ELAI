@@ -669,6 +669,24 @@ const ELAI_CSS = `
       transition: 1s;
       z-index: 99999999999999;
   }
+	  .elai-notification-bar:after {
+			content: '';
+			position: absolute;
+			height: 3px;
+			left: 0;
+			bottom: 0;
+			right: 100%;
+			background: linear-gradient(270deg, yellow, transparent);
+			animation: notificationBar ${NOTIFICATION_ANIMATION_DURATION}ms forwards;
+		}
+		@keyframes notificationBar {
+			0 {
+			right: 100%;
+		}
+		80% {
+			right: 0%;
+		}
+	}
 .elai-sidebar {
     position: fixed;
     top: 50vh;

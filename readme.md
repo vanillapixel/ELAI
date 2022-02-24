@@ -6,7 +6,7 @@ ELAI => ELement Added Interface, ELAI is a tool to quickly select and manipulate
 
 ## INSTALL
 
-It's important to follow the following steps. It's tempting to take another approach but that wouldn't work
+It's important to follow the following steps. I mean, why else would I call them "following" then. It's tempting to take another approach but that wouldn't work
 
 ### By creating a bookmark:
 
